@@ -1,0 +1,2574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>青年路希尔顿欢朋酒店排班系统 - Card Stack &amp; Liquid Glass</title>
+    <style>
+        :root {
+            --bg: #eef4ff;
+            --panel: rgba(255, 255, 255, .86);
+            --panel-solid: rgba(255, 255, 255, .96);
+            --ink: #17233d;
+            --muted: #52627d;
+            --line: rgba(188, 205, 234, .75);
+            --primary: #315efb;
+            --glass-highlight: rgba(255, 255, 255, .88);
+            --shadow: 0 18px 44px rgba(27, 54, 112, .12), inset 0 1px 0 var(--glass-highlight);
+            --shadow-hover: 0 24px 54px rgba(27, 54, 112, .18), 0 0 0 1px rgba(255, 255, 255, .95), inset 0 1px 0 rgba(255, 255, 255, .98);
+            --color-a: #e7f3ff;
+            --color-b: #fff6dc;
+            --color-c: #f2ebff;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+            background:
+                radial-gradient(circle at 10% 6%, rgba(88, 144, 255, .24), transparent 36%),
+                radial-gradient(circle at 90% 14%, rgba(36, 206, 194, .20), transparent 34%),
+                radial-gradient(circle at 50% 88%, rgba(138, 108, 255, .14), transparent 42%),
+                linear-gradient(135deg, #f5f8ff, #eaf2ff 55%, #f3faff);
+            background-attachment: fixed;
+            overflow-x: hidden;
+        }
+
+        header {
+            background: linear-gradient(115deg, rgba(29, 60, 142, .92), rgba(58, 106, 232, .88) 62%, rgba(30, 166, 198, .86));
+            border-bottom: 1px solid rgba(255, 255, 255, .55);
+            box-shadow: 0 12px 32px rgba(28, 62, 138, .18), inset 0 1px 0 rgba(255, 255, 255, .45);
+            backdrop-filter: blur(36px) saturate(1.7);
+            -webkit-backdrop-filter: blur(36px) saturate(1.7);
+            color: #fff;
+            padding: 26px clamp(16px, 4vw, 48px) 30px;
+            position: relative;
+        }
+
+        header::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(180deg, rgba(255, 255, 255, .14), transparent 55%);
+        }
+
+        .head {
+            position: relative;
+            max-width: 1600px;
+            margin: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap
+        }
+
+        h1 {
+            font-size: 25px;
+            margin: 0 0 7px;
+            font-weight: 800;
+            letter-spacing: .8px;
+            color: #fff;
+            text-shadow: 0 2px 10px rgba(13, 33, 84, .28)
+        }
+
+        .sub {
+            font-size: 13px;
+            color: #eaf2ff;
+            letter-spacing: .4px
+        }
+
+        .status {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 8px 14px;
+            border: 1px solid rgba(255, 255, 255, .52);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, .18);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            color: #fff;
+            transition: transform .22s ease, background .22s ease;
+        }
+
+        .status:hover {
+            transform: translateY(-1px);
+            background: rgba(255, 255, 255, .26);
+        }
+
+        main {
+            max-width: 1600px;
+            margin: 22px auto;
+            padding: 0 clamp(12px, 3vw, 36px) 54px
+        }
+
+        /* 全页面卡片统一液态玻璃与鼠标悬停交互 */
+        .toolbar,
+        .panel,
+        .dash-card,
+        .stack-bar {
+            background: var(--panel);
+            color: var(--ink);
+            border: 1px solid rgba(255, 255, 255, .84);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(36px) saturate(1.65);
+            -webkit-backdrop-filter: blur(36px) saturate(1.65);
+            transition: transform .26s cubic-bezier(.22, 1, .36, 1), box-shadow .26s ease, border-color .26s ease, background .26s ease, opacity .38s ease, filter .38s ease;
+        }
+
+        .toolbar:hover,
+        .stack-bar:hover,
+        .dash-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-hover);
+            border-color: rgba(255, 255, 255, .98);
+        }
+
+        .card-deck.is-expanded>.panel:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-hover);
+            border-color: rgba(255, 255, 255, .98);
+        }
+
+        .card-deck.is-stacked>.panel.stack-0:hover:not(.longpress-ready):not(.is-dragging-card) {
+            transform: translate3d(0, -3px, 0) scale(1.004);
+            box-shadow: var(--shadow-hover);
+            border-color: rgba(255, 255, 255, .98);
+        }
+
+        .toolbar {
+            padding: 17px 18px;
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            flex-wrap: wrap;
+            margin-bottom: 17px
+        }
+
+        .field {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--muted)
+        }
+
+        select,
+        input {
+            font: inherit
+        }
+
+        input[type=month],
+        .name-input,
+        select,
+        .day-input {
+            color: var(--ink);
+            background: rgba(255, 255, 255, .92);
+            border: 1px solid #cbd8ec;
+            border-radius: 10px;
+            padding: 9px 11px;
+            font-size: 12px;
+            transition: border-color .2s, box-shadow .2s, background .2s;
+        }
+
+        input[type=month]:hover,
+        .name-input:hover,
+        .day-input:hover {
+            border-color: #9cb6e4;
+            background: #fff;
+        }
+
+        input[type=month]:focus,
+        .name-input:focus,
+        .day-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(49, 94, 251, .16);
+        }
+
+        select option {
+            color: var(--ink);
+            background: #fff
+        }
+
+        button {
+            color: #263653;
+            border: 1px solid rgba(203, 218, 240, .95);
+            border-radius: 12px;
+            padding: 10px 15px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 13px;
+            transition: transform .22s cubic-bezier(.22, 1, .36, 1), box-shadow .22s ease, background .2s ease, border-color .2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37, 70, 130, .16);
+            border-color: rgba(49, 94, 251, .38);
+        }
+
+        button:active {
+            transform: translateY(0) scale(.98);
+        }
+
+        .primary {
+            background: linear-gradient(105deg, #315efb, #5d4ee8);
+            color: #fff;
+            border-color: rgba(255, 255, 255, .35);
+            box-shadow: 0 6px 18px rgba(49, 94, 251, .28)
+        }
+
+        .soft {
+            background: rgba(232, 239, 255, .9);
+            color: #244fc5;
+            border-color: #c8d7ff
+        }
+
+        .plain {
+            background: rgba(244, 247, 252, .88);
+            color: #34445f
+        }
+
+        .danger {
+            background: rgba(255, 240, 241, .92);
+            color: #b4233c;
+            border-color: #ffd0d5
+        }
+
+        .soft:hover,
+        .plain:hover {
+            background: #e5edfb
+        }
+
+        button.is-active {
+            background: linear-gradient(105deg, #244fc5, #4d42d6);
+            color: #fff;
+            border-color: transparent
+        }
+
+        button:disabled {
+            opacity: .45;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none
+        }
+
+        .spacer {
+            flex: 1
+        }
+
+        .hint {
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        /* Card Stack 切换控制栏 */
+        .stack-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            background: rgba(255, 255, 255, .82);
+        }
+
+        .stack-pills {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            flex-wrap: wrap
+        }
+
+        .stack-pill {
+            padding: 7px 13px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            background: rgba(240, 245, 255, .85);
+            color: #3c4f70;
+            border: 1px solid #d5e1f4;
+            user-select: none;
+        }
+
+        .stack-pill:hover {
+            background: rgba(226, 236, 255, .96);
+            border-color: #9cb7eb;
+        }
+
+        .stack-pill.active {
+            background: linear-gradient(105deg, #315efb, #5d4ee8);
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 5px 14px rgba(49, 94, 251, .26);
+        }
+
+        .stack-pill.card-drag-over {
+            outline: 2px dashed var(--primary);
+            transform: translateY(-3px) scale(1.04);
+        }
+
+        .stack-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap
+        }
+
+        /* 长按拖动卡片状态 */
+        .longpress-hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: #49608c;
+            background: rgba(235, 242, 255, .82);
+            border: 1px solid rgba(188, 206, 238, .8);
+            padding: 4px 10px;
+            border-radius: 999px;
+            user-select: none;
+        }
+
+        .panel-drag-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #3b558c;
+            background: rgba(234, 242, 255, .9);
+            border: 1px solid #c9d8f4;
+            padding: 4px 9px;
+            border-radius: 999px;
+            cursor: grab;
+            user-select: none;
+            transition: background .2s ease, transform .2s ease, border-color .2s ease;
+        }
+
+        .panel-drag-badge:hover {
+            background: #dfeaff;
+            border-color: #8fb1f0;
+            transform: translateY(-1px);
+        }
+
+        .panel.longpress-ready {
+            border-color: var(--primary) !important;
+            box-shadow: 0 24px 56px rgba(49, 94, 251, .26), 0 0 0 3px rgba(49, 94, 251, .18) !important;
+        }
+
+        .panel.is-dragging-card {
+            opacity: .72 !important;
+            transform: scale(1.015) !important;
+            cursor: grabbing !important;
+            z-index: 20 !important;
+        }
+
+        .panel.card-drop-target {
+            outline: 2.5px dashed var(--primary);
+            outline-offset: 3px;
+        }
+
+        /* Card Stack 容器：层叠模式与全展开模式 */
+        .card-deck {
+            position: relative;
+            margin-bottom: 18px;
+        }
+
+        .card-deck.is-stacked {
+            padding-bottom: 38px;
+            margin-bottom: 200px;
+        }
+
+        .card-deck.is-stacked>.panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            margin-bottom: 0;
+            overflow: hidden;
+            transform-origin: top center;
+        }
+
+        .card-deck.is-stacked>.panel.stack-0 {
+            position: relative;
+            z-index: 5;
+            opacity: 1;
+            filter: none;
+            transform: translate3d(0, 0, 0) scale(1);
+            pointer-events: auto;
+        }
+
+        .card-deck.is-stacked>.panel.stack-1 {
+            z-index: 4;
+            opacity: .72;
+            filter: blur(3px);
+            transform: translate3d(0, 14px, 0) scale(.976);
+            pointer-events: none;
+        }
+
+        .card-deck.is-stacked>.panel.stack-2 {
+            z-index: 3;
+            opacity: .48;
+            filter: blur(6px);
+            transform: translate3d(0, 28px, 0) scale(.952);
+            pointer-events: none;
+        }
+
+        .card-deck.is-stacked>.panel.stack-3 {
+            z-index: 2;
+            opacity: .24;
+            filter: blur(9px);
+            transform: translate3d(0, 42px, 0) scale(.928);
+            pointer-events: none;
+        }
+
+        .card-deck.is-stacked>.panel.stack-hide {
+            z-index: 1;
+            opacity: 0;
+            filter: blur(12px);
+            transform: translate3d(0, 52px, 0) scale(.9);
+            pointer-events: none;
+        }
+
+        /* 层叠模式下隐藏非最顶端卡片的内部内容，防止文字移出/透出错乱 */
+        .card-deck.is-stacked>.panel:not(.stack-0)> :not(.panel-head),
+        .card-deck.is-stacked>.panel:not(.stack-0) .panel-head>* {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .22s ease, visibility .22s ease;
+        }
+
+        .card-deck.is-stacked>.panel.stack-0> :not(.panel-head),
+        .card-deck.is-stacked>.panel.stack-0 .panel-head>* {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity .28s ease .08s, visibility .28s ease .08s;
+        }
+
+        .card-deck.is-expanded>.panel {
+            position: relative;
+            opacity: 1;
+            filter: none;
+            transform: none;
+            margin-bottom: 18px;
+            pointer-events: auto;
+        }
+
+        .card-deck.is-expanded>.panel> :not(.panel-head),
+        .card-deck.is-expanded>.panel .panel-head>* {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .legend {
+            display: flex;
+            gap: 7px;
+            flex-wrap: wrap;
+            padding: 0 2px 15px
+        }
+
+        .tag {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 5px 9px;
+            border-radius: 8px;
+            white-space: nowrap;
+            transition: transform .18s ease, box-shadow .18s ease;
+        }
+
+        .legend .tag {
+            border: 1px solid rgba(255, 255, 255, .75);
+            box-shadow: 0 5px 14px rgba(24, 52, 112, .08);
+            cursor: default;
+        }
+
+        .legend .tag:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 18px rgba(24, 52, 112, .14);
+        }
+
+        .panel {
+            overflow: hidden;
+            margin-bottom: 18px
+        }
+
+        .panel-head {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(208, 221, 242, .75);
+            background: rgba(255, 255, 255, .48);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            transition: background .22s ease;
+        }
+
+        .panel:hover .panel-head {
+            background: rgba(255, 255, 255, .68);
+        }
+
+        .panel-head-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .panel-head h2 {
+            font-size: 16px;
+            margin: 0;
+            color: #1b3470
+        }
+
+        .panel-head small {
+            color: var(--muted)
+        }
+
+        .table-wrap {
+            overflow: auto;
+            max-height: 67vh
+        }
+
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+            min-width: max-content;
+            width: 100%;
+            font-size: 12px
+        }
+
+        th,
+        td {
+            border-right: 1px solid #dce5f1;
+            border-bottom: 1px solid #dce5f1;
+            text-align: center;
+            padding: 5px;
+            min-width: 48px;
+            height: 42px;
+            background: rgba(255, 255, 255, .94);
+            color: #263653;
+            transition: background .15s ease;
+        }
+
+        tbody td:hover {
+            background: rgba(235, 243, 255, .96);
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 4;
+            background: #eaf0fc;
+            color: #263b68;
+            font-weight: 700
+        }
+
+        th.name,
+        td.name {
+            position: sticky;
+            left: 0;
+            z-index: 3;
+            min-width: 145px;
+            text-align: left;
+            padding: 7px 12px;
+            background: rgba(255, 255, 255, .97);
+            color: #1d2e50
+        }
+
+        thead th.name {
+            z-index: 6;
+            background: #e4ecfb
+        }
+
+        th.day .dow {
+            display: block;
+            font-size: 10px;
+            color: #7c899e;
+            margin-top: 3px;
+            font-weight: 500
+        }
+
+        th.weekend {
+            background: #fff0e7
+        }
+
+        td.weekend {
+            background: #fffaf5
+        }
+
+        td select {
+            width: 100%;
+            min-width: 43px;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            padding: 7px 1px;
+            text-align: center;
+            text-align-last: center;
+            font-weight: 800;
+            font-size: 12px;
+            appearance: none;
+            cursor: pointer;
+            background: transparent;
+            color: #263247
+        }
+
+        td select:focus {
+            outline: 2px solid #9bb1ff;
+            background: #fff
+        }
+
+        td select:disabled {
+            cursor: default;
+            opacity: 1
+        }
+
+        .shift-A {
+            background: #e5efff !important;
+            color: #2456c5 !important
+        }
+
+        .shift-B {
+            background: #fff0d9 !important;
+            color: #a65a00 !important
+        }
+
+        .shift-C {
+            background: #e9e4ff !important;
+            color: #6243b5 !important
+        }
+
+        .shift-DO {
+            background: #e9edf2 !important;
+            color: #687386 !important
+        }
+
+        .shift-D {
+            background: #e2f5ed !important;
+            color: #16734f !important
+        }
+
+        .shift-H {
+            background: #ffebef !important;
+            color: #b33f61 !important
+        }
+
+        .shift-M {
+            background: #fff4c9 !important;
+            color: #876300 !important
+        }
+
+        .shift-N {
+            background: #fce6e6 !important;
+            color: #b43d3d !important
+        }
+
+        .shift-L {
+            background: #ffe8d8 !important;
+            color: #a94f16 !important
+        }
+
+        .shift-F {
+            background: #e3f3f8 !important;
+            color: #28728a !important
+        }
+
+        .shift-X {
+            background: #343b48 !important;
+            color: #fff !important
+        }
+
+        .remove {
+            border: 0;
+            background: transparent;
+            color: #8c98ab;
+            padding: 4px 6px;
+            font-size: 15px
+        }
+
+        .remove:hover {
+            color: #d44848;
+            box-shadow: none
+        }
+
+        .summary-grid {
+            overflow: auto
+        }
+
+        .summary-table {
+            min-width: max-content
+        }
+
+        .summary-table th:first-child,
+        .summary-table td:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 2;
+            background: #edf2fc;
+            min-width: 115px;
+            text-align: left;
+            padding-left: 14px
+        }
+
+        .summary-table thead th:first-child {
+            z-index: 5
+        }
+
+        .summary-table td {
+            height: auto;
+            min-width: 100px;
+            max-width: 180px;
+            vertical-align: top;
+            padding: 8px 7px;
+            line-height: 1.6;
+            white-space: normal
+        }
+
+        .count {
+            display: inline-block;
+            font-weight: 800;
+            font-size: 12px;
+            margin-bottom: 3px
+        }
+
+        .names {
+            font-size: 11px;
+            color: #263653;
+            word-break: break-all
+        }
+
+        .empty {
+            color: #9aa7bc
+        }
+
+        /* 固定置于页面最底端的提示词 */
+        .bottom-footer-note {
+            text-align: center;
+            margin-top: 24px;
+            padding: 15px 18px;
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.75;
+            background: rgba(255, 255, 255, .78);
+            border: 1px solid rgba(255, 255, 255, .86);
+            border-radius: 16px;
+            box-shadow: 0 10px 26px rgba(27, 54, 112, .08), inset 0 1px 0 rgba(255, 255, 255, .88);
+            backdrop-filter: blur(28px) saturate(1.5);
+            -webkit-backdrop-filter: blur(28px) saturate(1.5);
+            transition: transform .22s ease, box-shadow .22s ease;
+        }
+
+        .bottom-footer-note:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 32px rgba(27, 54, 112, .12), inset 0 1px 0 rgba(255, 255, 255, .95);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(25, 45, 88, .92);
+            color: #fff;
+            padding: 11px 18px;
+            border-radius: 12px;
+            font-size: 13px;
+            border: 1px solid rgba(255, 255, 255, .28);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 10px 26px rgba(24, 52, 112, .28);
+            opacity: 0;
+            pointer-events: none;
+            transition: .25s;
+            z-index: 30
+        }
+
+        .toast.show {
+            opacity: 1
+        }
+
+        /* 全月视图：按容器宽度自动压缩列宽，不再横向滚动 */
+        .table-wrap,
+        .summary-grid {
+            overflow-x: hidden;
+            overflow-y: visible
+        }
+
+        #roster,
+        .summary-table {
+            width: 100%;
+            min-width: 0;
+            table-layout: fixed
+        }
+
+        #roster th,
+        #roster td {
+            min-width: 0;
+            padding: 3px 2px
+        }
+
+        #roster th.name,
+        #roster td.name {
+            width: 105px;
+            min-width: 105px;
+            max-width: 105px;
+            padding: 6px 8px
+        }
+
+        #roster th:last-child,
+        #roster td:last-child {
+            width: 58px;
+            min-width: 58px
+        }
+
+        #roster td select {
+            display: block;
+            width: 100%;
+            min-width: 0;
+            padding: 7px 0;
+            font-size: 11px;
+            border-radius: 4px
+        }
+
+        #roster th.day {
+            font-size: 11px
+        }
+
+        #roster th.day .dow {
+            font-size: 9px
+        }
+
+        .summary-table th,
+        .summary-table td {
+            min-width: 0;
+            padding: 5px 2px
+        }
+
+        .summary-table th:first-child,
+        .summary-table td:first-child {
+            width: 96px;
+            min-width: 96px;
+            max-width: 96px;
+            padding: 6px
+        }
+
+        .summary-table td {
+            font-size: 10px;
+            overflow-wrap: anywhere
+        }
+
+        .summary-table .tag {
+            font-size: 10px;
+            padding: 4px 5px;
+            white-space: normal
+        }
+
+        .summary-table .count {
+            font-size: 10px
+        }
+
+        .summary-table .names {
+            font-size: 9px;
+            line-height: 1.45;
+            overflow-wrap: anywhere
+        }
+
+        /* 每日信息录入与汇总表头统一样式 */
+        #dailyInfo {
+            width: 100%;
+            min-width: 0;
+            table-layout: fixed
+        }
+
+        #dailyInfo th,
+        #dailyInfo td {
+            min-width: 0;
+            padding: 4px 2px
+        }
+
+        #dailyInfo th:first-child,
+        #dailyInfo td:first-child {
+            width: 112px;
+            min-width: 112px;
+            max-width: 112px;
+            text-align: left;
+            padding: 7px 9px;
+            font-weight: 700
+        }
+
+        #dailyInfo thead th {
+            background: #eaf0fc;
+            color: #263b68;
+            font-weight: 700
+        }
+
+        #dailyInfo thead th:first-child {
+            background: #eaf0fc
+        }
+
+        #dailyInfo .day-input {
+            width: 100%;
+            min-width: 0;
+            border: 1px solid #cbd8ec;
+            border-radius: 5px;
+            padding: 6px 2px;
+            text-align: center;
+            font-size: 10px;
+            background: #fff;
+            color: var(--ink)
+        }
+
+        #dailyInfo .day-input:focus {
+            outline: 2px solid #9bb1ff
+        }
+
+        #dailyInfo .day-input:disabled {
+            background: #f0f3f8;
+            color: #65738a;
+            opacity: 1
+        }
+
+        #dailyInfo .daily-label {
+            font-size: 11px;
+            line-height: 1.4
+        }
+
+        #summary {
+            width: 100%;
+            min-width: 0;
+            table-layout: fixed
+        }
+
+        #summary th,
+        #summary td {
+            min-width: 0
+        }
+
+        #summary thead th {
+            background: #eaf0fc;
+            color: #263b68;
+            font-weight: 700;
+            height: 42px
+        }
+
+        #summary thead th:first-child {
+            background: #eaf0fc;
+            text-align: left;
+            padding-left: 9px
+        }
+
+        #summary thead th .dow {
+            display: block;
+            font-size: 10px;
+            color: #7c899e;
+            margin-top: 3px;
+            font-weight: 500
+        }
+
+        #summary tbody td:first-child {
+            background: #edf2fc;
+            text-align: left;
+            padding-left: 8px
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1.25fr 1fr 1.05fr 1fr .9fr .9fr;
+            gap: 12px;
+            margin-bottom: 18px
+        }
+
+        .dash-card {
+            background: linear-gradient(145deg, rgba(255, 255, 255, .92), rgba(242, 247, 255, .82));
+            padding: 15px 15px 14px;
+            min-width: 0
+        }
+
+        .dash-time {
+            background: linear-gradient(135deg, rgba(49, 94, 251, .92), rgba(103, 77, 230, .92));
+            color: #fff;
+            border-color: rgba(255, 255, 255, .45)
+        }
+
+        .dash-label {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 700;
+            margin-bottom: 10px;
+            letter-spacing: .3px
+        }
+
+        .dash-time .dash-label,
+        .dash-time .dash-sub,
+        .dash-time .dash-value {
+            color: #fff
+        }
+
+        .dash-value {
+            font-size: 20px;
+            font-weight: 800;
+            line-height: 1.35;
+            color: var(--ink);
+            overflow-wrap: anywhere
+        }
+
+        .dash-time .dash-value {
+            font-size: 18px;
+            white-space: nowrap
+        }
+
+        .dash-sub {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 7px
+        }
+
+        .dash-names {
+            font-size: 16px;
+            line-height: 1.55;
+            min-height: 44px
+        }
+
+        .dash-countdown .dash-value {
+            font-size: 25px;
+            color: #087f8c;
+            font-variant-numeric: tabular-nums
+        }
+
+        .manager-tools {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            flex-wrap: wrap;
+            padding: 14px 18px 8px
+        }
+
+        .manager-tools .name-input {
+            width: 210px
+        }
+
+        .manager-hint {
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        .manager-chips {
+            display: flex;
+            gap: 7px;
+            flex-wrap: wrap;
+            padding: 5px 18px 16px
+        }
+
+        .manager-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #edf3ff;
+            color: #274b9e;
+            border: 1px solid #d2def5;
+            border-radius: 20px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            transition: transform .18s ease, background .18s ease;
+        }
+
+        .manager-chip:hover {
+            transform: translateY(-1px);
+            background: #dfeaff;
+        }
+
+        .manager-chip button {
+            padding: 0;
+            background: none;
+            border: 0;
+            color: #274b9e;
+            font-size: 15px;
+            box-shadow: none
+        }
+
+        .drag-handle {
+            display: inline-block;
+            color: #8c98ab;
+            cursor: grab;
+            font-size: 16px;
+            margin-right: 5px;
+            vertical-align: middle;
+            user-select: none
+        }
+
+        #roster tbody tr[draggable="true"] {
+            cursor: grab
+        }
+
+        #roster tbody tr.dragging {
+            opacity: .35
+        }
+
+        #roster tbody tr.drag-over td {
+            box-shadow: inset 0 2px #315efb
+        }
+
+        #dailyInfo select.day-input {
+            appearance: auto;
+            cursor: pointer;
+            padding: 6px 1px
+        }
+
+        .move-row {
+            background: transparent;
+            border: 0;
+            color: #6b7a93;
+            padding: 3px 4px;
+            font-size: 11px;
+            box-shadow: none
+        }
+
+        .move-row:hover {
+            box-shadow: none;
+            color: var(--primary)
+        }
+
+        .move-row:disabled {
+            opacity: .2
+        }
+
+        /* 欢小朋班次角标与值班经理标识 */
+        #roster tbody td {
+            position: relative
+        }
+
+        #roster .roster-star {
+            position: absolute;
+            top: 4px;
+            right: 3px;
+            z-index: 2;
+            font-size: 12px;
+            line-height: 1;
+            pointer-events: none;
+            text-shadow: 0 0 1px #fff
+        }
+
+        #roster .roster-manager-star {
+            position: absolute;
+            top: 19px;
+            right: 3px;
+            z-index: 2;
+            font-size: 12px;
+            line-height: 1;
+            color: #d6a329;
+            pointer-events: none;
+            text-shadow: 0 0 1px #fff
+        }
+
+        /* 姓名逐行显示：每位员工独立一行 */
+        .summary-table .names {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 3px;
+            white-space: normal;
+        }
+
+        .summary-table .summary-person {
+            display: block;
+            width: 100%;
+            padding: 2px 5px;
+            border-radius: 6px;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+            background: #eaf0ff;
+            color: #263b68;
+        }
+
+        .leave-wrap {
+            overflow: auto;
+            padding: 14px 16px 18px
+        }
+
+        .leave-table {
+            min-width: 860px;
+            width: 100%;
+            table-layout: fixed
+        }
+
+        .leave-table th {
+            white-space: nowrap;
+            font-size: 11.5px;
+            padding: 8px 5px
+        }
+
+        .leave-table td {
+            padding: 7px 5px;
+            vertical-align: middle
+        }
+
+        .leave-table th.col-emp,
+        .leave-table td.col-emp {
+            width: 96px;
+            min-width: 96px;
+            max-width: 96px;
+            font-weight: 750;
+            color: #203d7b;
+            text-align: left;
+            padding-left: 8px;
+            padding-right: 6px;
+        }
+
+        .leave-table th.col-narrow-num,
+        .leave-table td.col-narrow-num {
+            width: 92px;
+            min-width: 92px;
+            max-width: 92px;
+        }
+
+        .leave-table th.col-note,
+        .leave-table td.col-note {
+            width: 136px;
+            min-width: 120px;
+        }
+
+        .leave-table th.col-do,
+        .leave-table td.col-do {
+            width: 88px;
+            min-width: 84px;
+        }
+
+        .leave-table th.col-next-total,
+        .leave-table td.col-next-total {
+            width: 104px;
+            min-width: 96px;
+        }
+
+        .leave-table td.col-prev-a {
+            background: var(--color-a);
+        }
+
+        .leave-table td.col-curr-b {
+            background: var(--color-b);
+        }
+
+        .leave-table td.col-next-c {
+            background: var(--color-c);
+        }
+
+        .leave-table input {
+            width: 100%;
+            min-width: 0;
+            padding: 7px 6px;
+            border: 1px solid #cbd8ec;
+            border-radius: 8px;
+            background: #fff;
+            color: var(--ink);
+            font: inherit;
+            font-size: 12px;
+        }
+
+        .leave-table input[type=number] {
+            padding: 7px 4px;
+            text-align: center;
+        }
+
+        .leave-total {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 48px;
+            padding: 5px 8px;
+            border-radius: 9px;
+            background: #e2f6ed;
+            color: #08744c;
+            font-weight: 850;
+            font-size: 13px;
+        }
+
+        .leave-do {
+            font-weight: 800;
+            color: var(--muted);
+        }
+
+        .leave-note {
+            min-width: 0 !important;
+        }
+
+        .leave-intro {
+            padding: 12px 16px 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.7
+        }
+
+        .leave-empty {
+            padding: 22px;
+            color: #7b879b;
+            text-align: center
+        }
+
+        @media(max-width:1250px) {
+            .dashboard {
+                grid-template-columns: repeat(3, minmax(0, 1fr))
+            }
+        }
+
+        @media(max-width:700px) {
+            h1 {
+                font-size: 20px
+            }
+
+            .toolbar {
+                gap: 8px
+            }
+
+            .toolbar button {
+                flex: 1
+            }
+
+            .spacer {
+                display: none
+            }
+
+            .hint {
+                width: 100%
+            }
+
+            .table-wrap {
+                max-height: 62vh
+            }
+
+            main {
+                padding-left: 6px;
+                padding-right: 6px
+            }
+
+            .table-wrap,
+            .summary-grid {
+                overflow-x: hidden
+            }
+
+            #roster th,
+            #roster td {
+                padding: 2px 0
+            }
+
+            #roster th.name,
+            #roster td.name {
+                width: 68px;
+                min-width: 68px;
+                max-width: 68px;
+                padding: 4px 3px;
+                font-size: 10px;
+                overflow-wrap: anywhere
+            }
+
+            #roster th:last-child,
+            #roster td:last-child {
+                width: 44px;
+                min-width: 44px
+            }
+
+            #roster td select {
+                font-size: 9px;
+                padding: 7px 0
+            }
+
+            #roster th.day {
+                font-size: 9px
+            }
+
+            #roster th.day .dow {
+                font-size: 7px
+            }
+
+            .summary-table th:first-child,
+            .summary-table td:first-child {
+                width: 65px;
+                min-width: 65px;
+                max-width: 65px;
+                padding: 4px 2px
+            }
+
+            .summary-table td {
+                padding: 4px 1px
+            }
+
+            .summary-table .tag {
+                font-size: 8px;
+                padding: 3px 2px
+            }
+
+            .summary-table .count {
+                font-size: 8px
+            }
+
+            .summary-table .names {
+                font-size: 7px;
+                line-height: 1.3
+            }
+
+            #dailyInfo th:first-child,
+            #dailyInfo td:first-child {
+                width: 68px;
+                min-width: 68px;
+                max-width: 68px;
+                padding: 4px 2px
+            }
+
+            #dailyInfo .daily-label {
+                font-size: 8px
+            }
+
+            #dailyInfo .day-input {
+                font-size: 8px;
+                padding: 6px 0
+            }
+
+            #summary thead th {
+                font-size: 9px
+            }
+
+            #summary thead th .dow {
+                font-size: 7px
+            }
+
+            .dashboard {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 7px
+            }
+
+            .dash-card {
+                padding: 11px
+            }
+
+            .dash-value {
+                font-size: 15px
+            }
+
+            .dash-time .dash-value {
+                font-size: 14px
+            }
+
+            .dash-countdown .dash-value {
+                font-size: 20px
+            }
+
+            .dash-names {
+                font-size: 13px;
+                min-height: 36px
+            }
+
+            .manager-tools {
+                padding: 10px
+            }
+
+            .manager-tools .name-input {
+                width: 100%;
+                flex: 1
+            }
+
+            .move-row {
+                padding: 2px
+            }
+
+            .leave-wrap {
+                padding: 10px
+            }
+
+            .leave-intro {
+                padding: 10px 12px 0
+            }
+        }
+
+        @media print {
+            body {
+                background: #fff
+            }
+
+            header {
+                background: #fff;
+                color: #111;
+                padding: 10px 0;
+                box-shadow: none;
+                border: 0
+            }
+
+            .sub,
+            .toolbar button,
+            .toolbar .hint,
+            .stack-bar,
+            .panel-drag-badge,
+            .remove {
+                display: none !important
+            }
+
+            main {
+                margin: 0;
+                padding: 0
+            }
+
+            .toolbar,
+            .panel,
+            .dash-card,
+            .bottom-footer-note {
+                box-shadow: none;
+                border: 0;
+                backdrop-filter: none;
+                background: #fff
+            }
+
+            .card-deck.is-stacked {
+                padding-bottom: 0
+            }
+
+            .card-deck.is-stacked>.panel {
+                position: relative !important;
+                opacity: 1 !important;
+                filter: none !important;
+                transform: none !important;
+                pointer-events: auto !important;
+                margin-bottom: 14px !important;
+            }
+
+            .card-deck.is-stacked>.panel> :not(.panel-head),
+            .card-deck.is-stacked>.panel .panel-head>* {
+                opacity: 1 !important;
+                visibility: visible !important;
+            }
+
+            .table-wrap {
+                overflow: visible;
+                max-height: none
+            }
+
+            th,
+            td {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact
+            }
+
+            .panel {
+                break-inside: avoid
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            *::before,
+            *::after {
+                transition: none !important;
+                animation: none !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="head">
+            <div>
+                <h1>青年路希尔顿欢朋酒店排班系统</h1>
+                <div class="sub">FRONT OFFICE · MONTHLY DUTY ROSTER · CLOUD REALTIME SYNC</div>
+            </div>
+            <div class="status" id="status">● 云端同步中</div>
+        </div>
+    </header>
+    <main>
+        <section class="dashboard" id="dashboard">
+            <div class="dash-card dash-time">
+                <div class="dash-label">当前时间</div>
+                <div class="dash-value" id="clockDate">—</div>
+                <div class="dash-sub" id="clockWeek">—</div>
+            </div>
+            <div class="dash-card">
+                <div class="dash-label">当前上班人员</div>
+                <div class="dash-value dash-names" id="onDuty">暂无</div>
+            </div>
+            <div class="dash-card dash-countdown">
+                <div class="dash-label">距离下班还有</div>
+                <div class="dash-value" id="offCountdown">--:--:--</div>
+                <div class="dash-sub" id="offAt">等待排班信息</div>
+            </div>
+            <div class="dash-card">
+                <div class="dash-label">接班人员</div>
+                <div class="dash-value dash-names" id="nextDuty">暂无</div>
+                <div class="dash-sub" id="nextShiftLabel">下一班</div>
+            </div>
+            <div class="dash-card">
+                <div class="dash-label">今日欢小朋</div>
+                <div class="dash-value dash-names" id="todayXiaopeng">未设置</div>
+            </div>
+            <div class="dash-card">
+                <div class="dash-label">今日值班经理</div>
+                <div class="dash-value dash-names" id="todayManager">未设置</div>
+            </div>
+        </section>
+
+        <section class="toolbar">
+            <label class="field">排班月份 <input type="month" id="month"></label>
+            <button class="primary" id="addBtn">＋ 添加员工</button>
+            <button class="soft" id="saveBtn">保存并锁定</button>
+            <button class="plain" id="editBtn" disabled>解锁编辑</button>
+            <button class="plain" id="importBtn">导入 Excel 排班表</button>
+            <input type="file" id="importFile" accept=".xlsx,.xls" hidden>
+            <button class="plain" id="exportBtn">导出 Excel 排班表</button>
+            <button class="plain" id="printBtn">打印排班表</button>
+            <span class="spacer"></span><span class="hint" id="monthInfo"></span>
+        </section>
+
+        <div class="legend" id="legend"></div>
+
+        <!-- Card Stack 视图控制条 -->
+        <div class="stack-bar" id="stackBar">
+            <div class="stack-pills" id="stackPills"></div>
+            <div class="stack-actions">
+                <span class="longpress-hint">✋ 长按卡片或手柄拖动可调整顺序</span>
+                <button type="button" class="plain" id="prevCardBtn">↑ 上一张</button>
+                <button type="button" class="plain" id="nextCardBtn">↓ 下一张</button>
+                <button type="button" class="soft" id="toggleDeckBtn">展开全部卡片</button>
+            </div>
+        </div>
+
+        <!-- Card Stack 层叠卡组 -->
+        <div class="card-deck is-stacked" id="cardDeck">
+            <section class="panel" id="panel-roster" data-card-id="panel-roster">
+                <div class="panel-head">
+                    <div class="panel-head-left">
+                        <span class="panel-drag-badge" data-drag-card="panel-roster" title="长按拖动调整卡片顺序">⠿ 长按拖卡</span>
+                        <h2>月度员工排班表</h2>
+                    </div>
+                    <small>点击单元格选择班次 · 周末日期单独标识</small>
+                </div>
+                <div class="table-wrap">
+                    <table id="roster"></table>
+                </div>
+            </section>
+
+            <section class="panel" id="panel-daily" data-card-id="panel-daily">
+                <div class="panel-head">
+                    <div class="panel-head-left">
+                        <span class="panel-drag-badge" data-drag-card="panel-daily" title="长按拖动调整卡片顺序">⠿ 长按拖卡</span>
+                        <h2>每日欢小朋员工及值班经理</h2>
+                    </div>
+                    <small>每天可填写 1–2 位欢小朋员工及 1 位值班经理</small>
+                </div>
+                <div class="table-wrap">
+                    <table id="dailyInfo"></table>
+                </div>
+            </section>
+
+            <section class="panel" id="panel-summary" data-card-id="panel-summary">
+                <div class="panel-head">
+                    <div class="panel-head-left">
+                        <span class="panel-drag-badge" data-drag-card="panel-summary" title="长按拖动调整卡片顺序">⠿ 长按拖卡</span>
+                        <h2>每日班次人员汇总</h2>
+                    </div>
+                    <small>自动统计 A / B / C / H 班人数及姓名</small>
+                </div>
+                <div class="summary-grid">
+                    <table class="summary-table" id="summary"></table>
+                </div>
+            </section>
+
+            <section class="panel" id="panel-leave" data-card-id="panel-leave">
+                <div class="panel-head">
+                    <div class="panel-head-left">
+                        <span class="panel-drag-badge" data-drag-card="panel-leave" title="长按拖动调整卡片顺序">⠿ 长按拖卡</span>
+                        <h2>员工月度假期统计</h2>
+                    </div>
+                    <small>每月默认新增 6 天 · 排班表中每个 DO 自动扣减 1 天</small>
+                </div>
+                <div class="leave-intro">填写上月结余及备注、本月新增假期及备注、下月备注；本月 DO 数量自动统计。下月累计假期 = 上月剩余假期 + 本月新增假期 − 本月 DO
+                    数量。假期数据随月份同步至云端。</div>
+                <div class="leave-wrap">
+                    <table class="leave-table" id="leaveStats"></table>
+                </div>
+            </section>
+
+            <section class="panel" id="panel-manager" data-card-id="panel-manager">
+                <div class="panel-head">
+                    <div class="panel-head-left">
+                        <span class="panel-drag-badge" data-drag-card="panel-manager" title="长按拖动调整卡片顺序">⠿ 长按拖卡</span>
+                        <h2>值班经理名单设置</h2>
+                    </div>
+                    <small>上传 CSV / TXT 名单后保存，作为每日值班经理下拉选项</small>
+                </div>
+                <div class="manager-tools">
+                    <input type="file" id="managerFile" accept=".csv,.txt" hidden>
+                    <button class="soft" id="managerUpload">上传值班经理名单</button>
+                    <input id="managerManual" class="name-input" placeholder="也可输入经理姓名，按回车添加">
+                    <button class="plain" id="managerAdd">添加姓名</button>
+                    <button class="primary" id="managerSave">保存经理名单</button>
+                    <span class="manager-hint" id="managerStatus">尚未设置经理名单</span>
+                </div>
+                <div class="manager-chips" id="managerChips"></div>
+            </section>
+        </div>
+
+        <!-- 置于页面最底端，不跟随卡片翻页与切换 -->
+        <footer class="bottom-footer-note" id="bottomFooterNote">提示：排班数据与假期统计已接入云端实时同步，多设备在线可共享查看与协作；本地同时保留缓存作为弱网兜底。保存后该月份进入锁定状态；如需调整，请先点击「解锁编辑」，多人同时编辑时请留意保存时机以避免互相覆盖。可导出 Excel 备份，也可上传本系统导出的 Excel 文件快速恢复排班；导入会替换当前月份的数据。值班经理名单已同步至云端；员工顺序可在未锁定时拖动调整。
+            <br>作者：Frozen
+        </footer>
+    </main>
+    <div class="toast" id="toast"></div>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://hsnihtrmdewcrckzxxxn.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzbmlodHJtZGV3Y3Jja3p4eHhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxMTY0MTIsImV4cCI6MjExMDY5MjQxMn0.qUcew4gTu0pPxfdqklEvurkK5a_zO1G0rhmOWqpheY8';
+        const clientId = 'client_' + Math.random().toString(36).slice(2, 10);
+        const sb = (window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY)
+            ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+            : null;
+
+        const shifts = [
+            ['', '未排班'], ['A', '早班 07:30-15:30'], ['B', '中班 15:30-23:30'], ['C', '晚班 23:30-07:30'],
+            ['DO', '休息'], ['D', '行政班 09:00-18:00'], ['H', '大中班11:00-20:00'], ['M', '法定节假日上班'],
+            ['N', '请假'], ['L', '迟到'], ['F', '病假'], ['X', '旷工'], ['🐼', '欢小朋'], ['👑', 'MOD']
+        ];
+        const colors = {A: '#e5efff', B: '#fff0d9', C: '#e9e4ff', DO: '#e9edf2', D: '#e2f5ed', H: '#ffebef', M: '#fff4c9', N: '#fce6e6', L: '#ffe8d8', F: '#e3f3f8', X: '#343b48'};
+        const labels = {A: '早班', B: '中班', C: '晚班', DO: '休息', D: '行政班', H: '大中班', M: '节假日', N: '请假', L: '迟到', F: '病假', X: '旷工'};
+        const defaultCardIds = ['panel-roster', 'panel-daily', 'panel-summary', 'panel-leave', 'panel-manager'];
+        const cardMetaMap = {
+            'panel-roster': '月度排班表',
+            'panel-daily': '每日欢小朋 & 经理',
+            'panel-summary': '每日班次汇总',
+            'panel-leave': '月度假期统计',
+            'panel-manager': '值班经理名单'
+        };
+        const CARD_ORDER_KEY = 'fo_card_order_v1';
+        const $ = id => document.getElementById(id);
+
+        function loadCardOrder() {
+            try {
+                const raw = JSON.parse(localStorage.getItem(CARD_ORDER_KEY) || 'null');
+                if (Array.isArray(raw)) {
+                    const valid = raw.filter(id => defaultCardIds.includes(id));
+                    const missing = defaultCardIds.filter(id => !valid.includes(id));
+                    return [...valid, ...missing];
+                }
+            } catch (_) { }
+            return [...defaultCardIds];
+        }
+
+        let cardIds = loadCardOrder();
+        let data = {employees: [], dailyInfo: {}, leaveStats: {}, saved: false}, currentKey = '';
+        let managerList = JSON.parse(localStorage.getItem('fo_manager_list') || '[]');
+        let activeCardId = cardIds[0] || 'panel-roster';
+        let isDeckExpanded = false;
+        let cloudSyncState = sb ? 'synced' : 'local';
+        let syncDebounceTimer = null;
+        let suppressRealtimeUntil = 0;
+
+        function normalizeRosterPayload(raw) {
+            const base = raw && typeof raw === 'object' ? raw : {};
+            const norm = {
+                employees: Array.isArray(base.employees) ? base.employees : [],
+                dailyInfo: base.dailyInfo && typeof base.dailyInfo === 'object' ? base.dailyInfo : {},
+                leaveStats: base.leaveStats && typeof base.leaveStats === 'object' ? base.leaveStats : {},
+                saved: Boolean(base.saved)
+            };
+            norm.employees.forEach(e => {
+                if (!e || typeof e !== 'object') return;
+                if (!e.shifts || typeof e.shifts !== 'object') e.shifts = {};
+            });
+            return norm;
+        }
+
+        function updateStatusBadge() {
+            const el = $('status');
+            if (!el) return;
+            const lockText = data.saved ? '已锁定' : '编辑中';
+            if (!sb) {
+                el.textContent = `● 本地模式 · ${lockText}`;
+                el.style.background = 'rgba(255,255,255,.16)';
+                return;
+            }
+            if (cloudSyncState === 'syncing') {
+                el.textContent = `● 正在同步云端 · ${lockText}`;
+                el.style.background = 'rgba(255,255,255,.22)';
+            } else if (cloudSyncState === 'offline') {
+                el.textContent = `● 云端连接异常 · 本地缓存 · ${lockText}`;
+                el.style.background = 'rgba(255,140,120,.28)';
+            } else {
+                el.textContent = `● 云端实时同步 · ${lockText}`;
+                el.style.background = data.saved ? 'rgba(255,255,255,.26)' : 'rgba(255,255,255,.18)';
+            }
+        }
+
+        function writeLocalCache(monthKey, rosterObj) {
+            if (!monthKey) return;
+            localStorage.setItem('fo_roster_' + monthKey, JSON.stringify(rosterObj));
+        }
+
+        async function pushRosterToCloud(monthKey, rosterObj, showErrToast = false) {
+            if (!sb || !monthKey) return;
+            cloudSyncState = 'syncing';
+            updateStatusBadge();
+            suppressRealtimeUntil = Date.now() + 1500;
+            try {
+                const payload = {...normalizeRosterPayload(rosterObj), _editor: clientId};
+                const {error} = await sb
+                    .from('rosters')
+                    .upsert({
+                        month_key: monthKey,
+                        payload,
+                        updated_at: new Date().toISOString()
+                    }, {onConflict: 'month_key'});
+                if (error) throw error;
+                cloudSyncState = 'synced';
+                updateStatusBadge();
+            } catch (err) {
+                cloudSyncState = 'offline';
+                updateStatusBadge();
+                if (showErrToast) toast('云端同步失败，已暂存本地：' + (err.message || '网络异常'));
+            }
+        }
+
+        async function pullRosterFromCloud(monthKey) {
+            if (!sb || !monthKey) return null;
+            try {
+                const {data: row, error} = await sb
+                    .from('rosters')
+                    .select('payload, updated_at')
+                    .eq('month_key', monthKey)
+                    .maybeSingle();
+                if (error) throw error;
+                cloudSyncState = 'synced';
+                updateStatusBadge();
+                if (!row || !row.payload) return null;
+                const clean = normalizeRosterPayload(row.payload);
+                writeLocalCache(monthKey, clean);
+                return clean;
+            } catch (_) {
+                cloudSyncState = 'offline';
+                updateStatusBadge();
+                return null;
+            }
+        }
+
+        async function pullManagerListFromCloud() {
+            if (!sb) return;
+            try {
+                const {data: row, error} = await sb
+                    .from('app_config')
+                    .select('payload')
+                    .eq('config_key', 'manager_list')
+                    .maybeSingle();
+                if (error) throw error;
+                if (row && Array.isArray(row.payload)) {
+                    managerList = [...new Set(row.payload.map(x => String(x || '').trim()).filter(Boolean))];
+                    localStorage.setItem('fo_manager_list', JSON.stringify(managerList));
+                    renderManagerList();
+                    renderDailyInfo();
+                    updateDashboard();
+                }
+            } catch (_) { }
+        }
+
+        async function pushManagerListToCloud() {
+            localStorage.setItem('fo_manager_list', JSON.stringify(managerList));
+            if (!sb) return;
+            cloudSyncState = 'syncing';
+            updateStatusBadge();
+            suppressRealtimeUntil = Date.now() + 1500;
+            try {
+                const {error} = await sb
+                    .from('app_config')
+                    .upsert({
+                        config_key: 'manager_list',
+                        payload: managerList,
+                        updated_at: new Date().toISOString()
+                    }, {onConflict: 'config_key'});
+                if (error) throw error;
+                cloudSyncState = 'synced';
+                updateStatusBadge();
+            } catch (_) {
+                cloudSyncState = 'offline';
+                updateStatusBadge();
+            }
+        }
+
+        function isUserTypingInInput() {
+            const active = document.activeElement;
+            if (!active) return false;
+            return active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA';
+        }
+
+        function subscribeRealtime() {
+            if (!sb) return;
+            sb.channel('fo_realtime_sync')
+                .on('postgres_changes', {event: '*', schema: 'public', table: 'rosters'}, payload => {
+                    if (Date.now() < suppressRealtimeUntil) return;
+                    const row = payload.new || payload.old;
+                    const changedMonth = row && row.month_key;
+                    if (!changedMonth || !payload.new || !payload.new.payload) return;
+                    if (payload.new.payload._editor === clientId) return;
+
+                    const clean = normalizeRosterPayload(payload.new.payload);
+                    writeLocalCache(changedMonth, clean);
+
+                    if (changedMonth === currentKey) {
+                        data = clean;
+                        if (!isUserTypingInInput()) {
+                            render();
+                        } else {
+                            updateDashboard();
+                        }
+                        toast(`已同步 ${changedMonth} 最新云端排班`);
+                    } else {
+                        updateDashboard();
+                    }
+                })
+                .on('postgres_changes', {event: '*', schema: 'public', table: 'app_config'}, payload => {
+                    if (Date.now() < suppressRealtimeUntil) return;
+                    const row = payload.new;
+                    if (!row || row.config_key !== 'manager_list' || !Array.isArray(row.payload)) return;
+                    managerList = [...new Set(row.payload.map(x => String(x || '').trim()).filter(Boolean))];
+                    localStorage.setItem('fo_manager_list', JSON.stringify(managerList));
+                    if (!isUserTypingInInput()) {
+                        renderManagerList();
+                        renderDailyInfo();
+                    }
+                    updateDashboard();
+                    toast('值班经理名单已云端同步');
+                })
+                .subscribe(status => {
+                    if (status === 'SUBSCRIBED') {
+                        cloudSyncState = 'synced';
+                        updateStatusBadge();
+                    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                        cloudSyncState = 'offline';
+                        updateStatusBadge();
+                    }
+                });
+        }
+
+        function saveCardOrder() {
+            localStorage.setItem(CARD_ORDER_KEY, JSON.stringify(cardIds));
+        }
+
+        function syncDeckDomOrder() {
+            const deck = $('cardDeck');
+            if (!deck) return;
+            cardIds.forEach(id => {
+                const el = $(id);
+                if (el && el.parentElement === deck) deck.appendChild(el);
+            });
+        }
+
+        function renderStackPills() {
+            const pillsWrap = $('stackPills');
+            if (!pillsWrap) return;
+            pillsWrap.innerHTML = cardIds.map((id, idx) => `
+                <button type="button" class="stack-pill ${id === activeCardId ? 'active' : ''}" data-focus="${id}" data-pill-idx="${idx}" title="点击切换，长按拖动调整顺序">${idx + 1}. ${cardMetaMap[id] || id}</button>
+            `).join('');
+            pillsWrap.querySelectorAll('.stack-pill').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (btn.dataset.skipClick === '1') {
+                        btn.dataset.skipClick = '';
+                        return;
+                    }
+                    focusCard(btn.dataset.focus, isDeckExpanded);
+                });
+                bindLongPressCardDrag(btn, btn.dataset.focus, true);
+            });
+        }
+
+        function applyCardStack() {
+            syncDeckDomOrder();
+            renderStackPills();
+            const deck = $('cardDeck');
+            if (!deck) return;
+            deck.classList.toggle('is-stacked', !isDeckExpanded);
+            deck.classList.toggle('is-expanded', isDeckExpanded);
+            $('toggleDeckBtn').textContent = isDeckExpanded ? '切换层叠卡片' : '展开全部卡片';
+            $('toggleDeckBtn').classList.toggle('is-active', isDeckExpanded);
+
+            if (isDeckExpanded) {
+                cardIds.forEach(id => {
+                    const el = $(id);
+                    if (el) el.className = 'panel';
+                });
+                return;
+            }
+
+            if (!cardIds.includes(activeCardId)) activeCardId = cardIds[0];
+            const startIdx = Math.max(0, cardIds.indexOf(activeCardId));
+            const ordered = [...cardIds.slice(startIdx), ...cardIds.slice(0, startIdx)];
+            ordered.forEach((id, idx) => {
+                const el = $(id);
+                if (!el) return;
+                const posClass = idx <= 3 ? `stack-${idx}` : 'stack-hide';
+                el.className = `panel ${posClass}`;
+            });
+        }
+
+        function focusCard(id, scrollIntoView = false) {
+            if (!cardIds.includes(id)) return;
+            activeCardId = id;
+            applyCardStack();
+            if (scrollIntoView) {
+                const target = $(id);
+                if (target) target.scrollIntoView({behavior: 'smooth', block: 'start'});
+            }
+        }
+
+        function stepCard(delta) {
+            if (isDeckExpanded) {
+                isDeckExpanded = false;
+            }
+            const idx = cardIds.indexOf(activeCardId);
+            const nextIdx = (idx + delta + cardIds.length) % cardIds.length;
+            focusCard(cardIds[nextIdx], false);
+        }
+
+        /* 长按拖动调整卡片顺序 */
+        let longPressState = null;
+
+        function reorderCards(sourceId, targetId) {
+            if (!sourceId || !targetId || sourceId === targetId) return;
+            const fromIdx = cardIds.indexOf(sourceId);
+            const toIdx = cardIds.indexOf(targetId);
+            if (fromIdx < 0 || toIdx < 0) return;
+            const [moved] = cardIds.splice(fromIdx, 1);
+            cardIds.splice(toIdx, 0, moved);
+            activeCardId = moved;
+            saveCardOrder();
+            applyCardStack();
+            toast(`卡片顺序已更新：${cardMetaMap[moved] || '卡片'}`);
+        }
+
+        function clearDragIndicators() {
+            document.querySelectorAll('.panel.longpress-ready, .panel.is-dragging-card, .panel.card-drop-target').forEach(el => {
+                el.classList.remove('longpress-ready', 'is-dragging-card', 'card-drop-target');
+            });
+            document.querySelectorAll('.stack-pill.card-drag-over').forEach(el => {
+                el.classList.remove('card-drag-over');
+            });
+        }
+
+        function findDropTargetId(clientX, clientY, sourceId) {
+            const pillEls = [...document.querySelectorAll('.stack-pill')];
+            for (const pill of pillEls) {
+                if (pill.dataset.focus === sourceId) continue;
+                const rect = pill.getBoundingClientRect();
+                if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top - 8 && clientY <= rect.bottom + 8) {
+                    return pill.dataset.focus;
+                }
+            }
+            const panelEls = cardIds.map(id => $(id)).filter(el => el && el.dataset.cardId !== sourceId);
+            for (const panel of panelEls) {
+                const rect = panel.getBoundingClientRect();
+                if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+                    return panel.dataset.cardId;
+                }
+            }
+            return null;
+        }
+
+        function bindLongPressCardDrag(triggerEl, cardId, isPill = false) {
+            triggerEl.addEventListener('pointerdown', e => {
+                if (e.button !== undefined && e.button !== 0 && e.pointerType === 'mouse') return;
+                if (!isPill && e.target.closest('button, select, input')) return;
+
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const panelEl = $(cardId);
+
+                const timer = setTimeout(() => {
+                    longPressState = {
+                        sourceId: cardId,
+                        startX,
+                        startY,
+                        activeDrag: true,
+                        dropTargetId: null,
+                        isPill
+                    };
+                    if (isPill) triggerEl.dataset.skipClick = '1';
+                    clearDragIndicators();
+                    if (panelEl) panelEl.classList.add('longpress-ready', 'is-dragging-card');
+                    document.body.style.cursor = 'grabbing';
+                    toast(`已激活「${cardMetaMap[cardId]}」拖动，请移动到目标位置后松开`);
+                }, 350);
+
+                longPressState = {
+                    sourceId: cardId,
+                    startX,
+                    startY,
+                    timer,
+                    activeDrag: false,
+                    dropTargetId: null,
+                    isPill
+                };
+            });
+        }
+
+        document.addEventListener('pointermove', e => {
+            if (!longPressState) return;
+            const dx = Math.abs(e.clientX - longPressState.startX);
+            const dy = Math.abs(e.clientY - longPressState.startY);
+            if (!longPressState.activeDrag && (dx > 8 || dy > 8)) {
+                clearTimeout(longPressState.timer);
+                longPressState = null;
+                return;
+            }
+            if (!longPressState.activeDrag) return;
+
+            const targetId = findDropTargetId(e.clientX, e.clientY, longPressState.sourceId);
+            longPressState.dropTargetId = targetId;
+
+            document.querySelectorAll('.panel.card-drop-target').forEach(el => el.classList.remove('card-drop-target'));
+            document.querySelectorAll('.stack-pill.card-drag-over').forEach(el => el.classList.remove('card-drag-over'));
+
+            if (targetId) {
+                const targetPanel = $(targetId);
+                if (targetPanel) targetPanel.classList.add('card-drop-target');
+                const targetPill = document.querySelector(`.stack-pill[data-focus="${targetId}"]`);
+                if (targetPill) targetPill.classList.add('card-drag-over');
+            }
+        });
+
+        function finishLongPressDrag() {
+            if (!longPressState) return;
+            clearTimeout(longPressState.timer);
+            const {activeDrag, sourceId, dropTargetId} = longPressState;
+            longPressState = null;
+            document.body.style.cursor = '';
+            clearDragIndicators();
+            if (activeDrag && dropTargetId) {
+                reorderCards(sourceId, dropTargetId);
+            }
+        }
+
+        document.addEventListener('pointerup', finishLongPressDrag);
+        document.addEventListener('pointercancel', finishLongPressDrag);
+
+        cardIds.forEach(id => {
+            const panelEl = $(id);
+            if (panelEl) bindLongPressCardDrag(panelEl, id, false);
+            const badgeEl = document.querySelector(`[data-drag-card="${id}"]`);
+            if (badgeEl) bindLongPressCardDrag(badgeEl, id, false);
+        });
+
+        $('prevCardBtn').addEventListener('click', () => stepCard(-1));
+        $('nextCardBtn').addEventListener('click', () => stepCard(1));
+        $('toggleDeckBtn').addEventListener('click', () => {
+            isDeckExpanded = !isDeckExpanded;
+            applyCardStack();
+        });
+
+        function key() {return $('month').value}
+        function days() {let [y, m] = key().split('-').map(Number); return new Date(y, m, 0).getDate()}
+        function weekday(day) {return ['日', '一', '二', '三', '四', '五', '六'][new Date(...key().split('-').map(Number).map((v, i) => i === 1 ? v - 1 : v), day).getDay()]}
+        function toast(msg) {$('toast').textContent = msg; $('toast').classList.add('show'); clearTimeout(window.__toastTimer); window.__toastTimer = setTimeout(() => $('toast').classList.remove('show'), 2200)}
+
+        function persist(immediateCloud = false) {
+            writeLocalCache(currentKey, data);
+            if (!sb || !currentKey) return;
+            clearTimeout(syncDebounceTimer);
+            if (immediateCloud) {
+                pushRosterToCloud(currentKey, data, true);
+            } else {
+                syncDebounceTimer = setTimeout(() => {
+                    pushRosterToCloud(currentKey, data, false);
+                }, 350);
+            }
+        }
+
+        async function loadMonth() {
+            const targetKey = key();
+            currentKey = targetKey;
+            let raw = localStorage.getItem('fo_roster_' + currentKey);
+            data = normalizeRosterPayload(raw ? JSON.parse(raw) : null);
+            render();
+
+            const cloudData = await pullRosterFromCloud(targetKey);
+            if (cloudData && currentKey === targetKey) {
+                data = cloudData;
+                render();
+            }
+        }
+
+        function renderLegend() {
+            $('legend').innerHTML = shifts.filter(s => s[0]).map(([code, label]) => `<span class="tag" style="background:${colors[code]};color:${code === 'X' ? 'white' : '#38445a'}">${code} · ${label}</span>`).join('');
+        }
+
+        function render() {
+            const n = days(), [y, m] = key().split('-');
+            $('monthInfo').textContent = `${y}年${Number(m)}月 · 共 ${n} 天 · ${data.employees.length} 位员工`;
+            updateStatusBadge();
+            $('addBtn').disabled = data.saved; $('saveBtn').disabled = data.saved; $('editBtn').disabled = !data.saved;
+            const table = $('roster'); let h = '<thead><tr><th class="name">员工姓名</th>';
+            for (let d = 1; d <= n; d++) {let w = weekday(d), we = (w === '六' || w === '日'); h += `<th class="day ${we ? 'weekend' : ''}">${d}<span class="dow">周${w}</span></th>`}
+            h += '<th>操作</th></tr></thead><tbody>';
+            data.employees.forEach((e, i) => {
+                h += `<tr draggable="${data.saved ? 'false' : 'true'}" data-row="${i}"><td class="name"><span class="drag-handle" title="按住拖动调整员工顺序">⠿</span><strong>${escapeHtml(e.name || '未命名员工')}</strong></td>`;
+                for (let d = 1; d <= n; d++) {let v = e.shifts[d] || '', w = weekday(d), we = w === '六' || w === '日', dayInfo = data.dailyInfo[d] || {}, isXiaopeng = dayInfo.xiaopeng1 === e.name || dayInfo.xiaopeng2 === e.name, isManager = dayInfo.manager === e.name; h += `<td class="${we ? 'weekend' : ''}">${isXiaopeng ? '<span class="roster-star" title="今日欢小朋">🐼</span>' : ''}${isManager ? '<span class="roster-manager-star" title="今日值班经理">👑</span>' : ''}<select aria-label="${escapeHtml(e.name)} ${d}日班次" data-emp="${i}" data-day="${d}" class="${v ? 'shift-' + v : ''}" ${data.saved ? 'disabled' : ''}>${shifts.map(([c, l]) => `<option value="${c}" ${c === v ? 'selected' : ''}>${c || '—'}</option>`).join('')}</select></td>`}
+                h += `<td><button class="move-row" data-move-up="${i}" title="上移" ${data.saved || i === 0 ? 'disabled' : ''}>↑</button><button class="move-row" data-move-down="${i}" title="下移" ${data.saved || i === data.employees.length - 1 ? 'disabled' : ''}>↓</button><button class="remove" data-remove="${i}" title="删除员工" ${data.saved ? 'disabled' : ''}>×</button></td></tr>`
+            });
+            if (!data.employees.length) h += `<tr><td colspan="${n + 2}" style="padding:35px;color:#8c98ab">还没有员工，点击上方「添加员工」开始排班</td></tr>`;
+            h += '</tbody>'; table.innerHTML = h;
+            table.querySelectorAll('select[data-emp]').forEach(el => el.addEventListener('change', e => {let {emp, day} = e.target.dataset; data.employees[+emp].shifts[day] = e.target.value; e.target.className = e.target.value ? 'shift-' + e.target.value : ''; renderSummary(); renderLeaveStats(); persist()}));
+            table.querySelectorAll('[data-remove]').forEach(el => el.addEventListener('click', () => {let i = +el.dataset.remove; if (confirm(`确定删除员工「${data.employees[i].name}」及其排班吗？`)) {data.employees.splice(i, 1); persist(); render()} }));
+            table.querySelectorAll('[data-move-up],[data-move-down]').forEach(el => el.addEventListener('click', () => {
+                let i = +(el.dataset.moveUp ?? el.dataset.moveDown), to = el.hasAttribute('data-move-up') ? i - 1 : i + 1;
+                if (to < 0 || to >= data.employees.length) return;
+                [data.employees[i], data.employees[to]] = [data.employees[to], data.employees[i]];
+                persist(); render(); toast('员工顺序已调整');
+            }));
+            let dragIndex = null;
+            table.querySelectorAll('tbody tr[data-row]').forEach(tr => {
+                tr.addEventListener('dragstart', e => {dragIndex = +tr.dataset.row; tr.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(dragIndex))});
+                tr.addEventListener('dragover', e => {e.preventDefault(); tr.classList.add('drag-over'); e.dataTransfer.dropEffect = 'move'});
+                tr.addEventListener('dragleave', () => tr.classList.remove('drag-over'));
+                tr.addEventListener('drop', e => {e.preventDefault(); tr.classList.remove('drag-over'); let to = +tr.dataset.row, from = dragIndex; if (from === null || from === to) return; let moved = data.employees.splice(from, 1)[0]; data.employees.splice(to, 0, moved); persist(); render(); toast('员工顺序已调整')});
+                tr.addEventListener('dragend', () => {dragIndex = null; table.querySelectorAll('tr').forEach(r => r.classList.remove('dragging', 'drag-over'))});
+            });
+            renderDailyInfo();
+            renderSummary();
+            renderLeaveStats();
+            renderManagerList();
+            updateDashboard();
+            applyCardStack();
+        }
+
+        function renderDailyInfo() {
+            let n = days(), h = '<thead><tr><th class="name">每日信息</th>';
+            for (let d = 1; d <= n; d++) {let w = weekday(d), we = (w === '六' || w === '日'); h += `<th class="day ${we ? 'weekend' : ''}">${d}<span class="dow">周${w}</span></th>`}
+            h += '</tr></thead><tbody>';
+            const rows = [['xiaopeng1', '欢小朋（早）'], ['xiaopeng2', '欢小朋（中）'], ['manager', '值班经理']];
+            rows.forEach(([field, label]) => {
+                h += `<tr><td class="name"><span class="daily-label">${label}</span></td>`;
+                for (let d = 1; d <= n; d++) {
+                    let day = data.dailyInfo[d] || {}, value = day[field] || '', we = ['六', '日'].includes(weekday(d));
+                    let options = field === 'manager' ? managerList : data.employees.map(e => e.name).filter(Boolean);
+                    h += `<td class="${we ? 'weekend' : ''}"><select class="day-input" data-daily-field="${field}" data-day="${d}" ${data.saved ? 'disabled' : ''}><option value="">请选择</option>${options.map(name => `<option value="${escapeHtml(name)}" ${name === value ? 'selected' : ''}>${escapeHtml(name)}</option>`).join('')}</select></td>`;
+                }
+                h += '</tr>';
+            });
+            h += '</tbody>'; $('dailyInfo').innerHTML = h;
+            $('dailyInfo').querySelectorAll('[data-daily-field]').forEach(el => el.addEventListener('change', e => {
+                let {dailyField, day} = e.target.dataset;
+                if (!data.dailyInfo[day]) data.dailyInfo[day] = {};
+                data.dailyInfo[day][dailyField] = e.target.value;
+                persist(); render();
+            }));
+        }
+
+        function renderSummary() {
+            let n = days(), codes = ['A', 'B', 'C', 'H']; let h = '<thead><tr><th class="name">班次 / 日期</th>';
+            for (let d = 1; d <= n; d++) {let w = weekday(d); h += `<th class="day">${d}<span class="dow">周${w}</span></th>`} h += '</tr></thead><tbody>';
+            codes.forEach(code => {
+                h += `<tr><td><span class="tag" style="background:${colors[code]};color:#38445a">${code} · ${labels[code]}</span></td>`;
+                for (let d = 1; d <= n; d++) {let people = data.employees.filter(e => e.shifts[d] === code).map(e => e.name).filter(Boolean); h += `<td><div class="count">${people.length} 人</div><div class="names">${people.length ? people.map(name => `<span class="summary-person">${escapeHtml(name)}</span>`).join('') : '<span class="empty">—</span>'}</div></td>`} h += '</tr>'
+            });
+            h += '</tbody>'; $('summary').innerHTML = h;
+        }
+
+        function getLeaveRecord(name) {
+            if (!data.leaveStats) data.leaveStats = {};
+            if (!data.leaveStats[name]) {
+                let previousRemaining = '', previousNote = '', defaultNextNote = '';
+                const [yy, mm] = currentKey.split('-').map(Number);
+                const prevDate = new Date(yy, mm - 2, 1);
+                const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+                try {
+                    const prevData = JSON.parse(localStorage.getItem('fo_roster_' + prevKey) || 'null');
+                    const prevRecord = prevData && prevData.leaveStats && prevData.leaveStats[name];
+                    if (prevRecord && prevRecord.nextTotal !== undefined && prevRecord.nextTotal !== '') {
+                        previousRemaining = prevRecord.nextTotal;
+                        previousNote = (prevRecord.nextNote !== undefined && prevRecord.nextNote !== '')
+                            ? prevRecord.nextNote
+                            : [prevRecord.previousNote, prevRecord.addedNote].map(x => String(x || '').trim()).filter(Boolean).join('；');
+                    }
+                } catch (_) { }
+                data.leaveStats[name] = {previousRemaining, previousNote, addedDays: 6, addedNote: '', nextNote: defaultNextNote};
+            }
+            const r = data.leaveStats[name];
+            if (r.addedDays === undefined || r.addedDays === null || r.addedDays === '') r.addedDays = 6;
+            if (r.nextNote === undefined || r.nextNote === null) {
+                r.nextNote = [r.previousNote, r.addedNote].map(x => String(x || '').trim()).filter(Boolean).join('；');
+            }
+            return r;
+        }
+
+        function renderLeaveStats() {
+            const table = $('leaveStats'); if (!table) return;
+            if (!data.employees.length) {table.innerHTML = '<tbody><tr><td class="leave-empty">请先添加员工，假期统计将自动显示在这里</td></tr></tbody>'; return;}
+            let h = `<thead><tr>
+                <th class="col-emp">员工姓名</th>
+                <th class="col-narrow-num">上月剩余假期（天）</th>
+                <th class="col-note">上月备注</th>
+                <th class="col-narrow-num">本月新增假期（天）</th>
+                <th class="col-note">本月备注</th>
+                <th class="col-do">本月已排 DO</th>
+                <th class="col-next-total">下月累计假期（天）</th>
+                <th class="col-note">下月备注</th>
+            </tr></thead><tbody>`;
+            data.employees.forEach(e => {
+                const name = e.name || '未命名员工', r = getLeaveRecord(name);
+                const doCount = Object.entries(e.shifts || {}).filter(([d, v]) => Number(d) >= 1 && Number(d) <= days() && v === 'DO').length;
+                const prev = Number(r.previousRemaining) || 0, added = Number(r.addedDays) || 0;
+                const total = prev + added - doCount;
+                r.nextTotal = total;
+                h += `<tr>
+                    <td class="col-emp">${escapeHtml(name)}</td>
+                    <td class="col-narrow-num col-prev-a"><input type="number" step="0.5" data-leave="previousRemaining" data-name="${escapeHtml(name)}" value="${escapeHtml(r.previousRemaining)}" placeholder="填写天数"></td>
+                    <td class="col-note col-prev-a"><input class="leave-note" data-leave="previousNote" data-name="${escapeHtml(name)}" value="${escapeHtml(r.previousNote || '')}" placeholder="上月假期备注"></td>
+                    <td class="col-narrow-num col-curr-b"><input type="number" min="0" step="0.5" data-leave="addedDays" data-name="${escapeHtml(name)}" value="${escapeHtml(r.addedDays)}"></td>
+                    <td class="col-note col-curr-b"><input class="leave-note" data-leave="addedNote" data-name="${escapeHtml(name)}" value="${escapeHtml(r.addedNote || '')}" placeholder="本月新增假期备注"></td>
+                    <td class="col-do col-curr-b"><span class="leave-do">${doCount} 天</span></td>
+                    <td class="col-next-total col-next-c"><span class="leave-total">${Number.isInteger(total) ? total : total.toFixed(1)} 天</span></td>
+                    <td class="col-note col-next-c"><input class="leave-note" data-leave="nextNote" data-name="${escapeHtml(name)}" value="${escapeHtml(r.nextNote || '')}" placeholder="手动填写下月备注"></td>
+                </tr>`;
+            });
+            h += '</tbody>'; table.innerHTML = h;
+            table.querySelectorAll('[data-leave]').forEach(el => {
+                el.addEventListener('input', ev => {
+                    const field = ev.target.dataset.leave, name = ev.target.dataset.name;
+                    const record = getLeaveRecord(name);
+                    record[field] = ev.target.value;
+                    if (field === 'previousRemaining' || field === 'addedDays') {
+                        const row = ev.target.closest('tr');
+                        const doCount = Object.entries((data.employees.find(emp => (emp.name || '未命名员工') === name)?.shifts) || {})
+                            .filter(([d, v]) => Number(d) >= 1 && Number(d) <= days() && v === 'DO').length;
+                        const prev = Number(record.previousRemaining) || 0;
+                        const added = Number(record.addedDays) || 0;
+                        const total = prev + added - doCount;
+                        record.nextTotal = total;
+                        const badge = row?.querySelector('.leave-total');
+                        if (badge) badge.textContent = `${Number.isInteger(total) ? total : total.toFixed(1)} 天`;
+                    }
+                    persist();
+                });
+                el.addEventListener('change', ev => {
+                    const field = ev.target.dataset.leave, name = ev.target.dataset.name;
+                    const record = getLeaveRecord(name);
+                    record[field] = (field === 'previousRemaining' || field === 'addedDays') ? ev.target.value : ev.target.value.trim();
+                    renderLeaveStats(); persist();
+                });
+            });
+            writeLocalCache(currentKey, data);
+        }
+
+        function renderManagerList() {
+            $('managerStatus').textContent = managerList.length ? `已同步 ${managerList.length} 位值班经理` : '尚未设置经理名单';
+            $('managerChips').innerHTML = managerList.map((name, i) => `<span class="manager-chip">${escapeHtml(name)}<button type="button" data-manager-remove="${i}" title="移除">×</button></span>`).join('') || '<span class="manager-hint">请上传 CSV / TXT 文件，或手动添加经理姓名</span>';
+            $('managerChips').querySelectorAll('[data-manager-remove]').forEach(btn => btn.addEventListener('click', () => {
+                managerList.splice(+btn.dataset.managerRemove, 1);
+                renderManagerList();
+                renderDailyInfo();
+                pushManagerListToCloud();
+            }));
+        }
+
+        function addManagerName(name) {
+            name = (name || '').trim(); if (!name) return;
+            if (!managerList.includes(name)) managerList.push(name);
+            renderManagerList(); renderDailyInfo();
+        }
+
+        function getRosterForDate(date) {
+            const k = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            if (k === currentKey) return data;
+            try {return JSON.parse(localStorage.getItem('fo_roster_' + k) || 'null') || {employees: [], dailyInfo: {}}}
+            catch (_) {return {employees: [], dailyInfo: {}}}
+        }
+
+        function updateDashboard() {
+            const now = new Date(), pad = n => String(n).padStart(2, '0');
+            const week = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            $('clockDate').textContent = `${now.getFullYear()}年${pad(now.getMonth() + 1)}月${pad(now.getDate())}日 ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+            $('clockWeek').textContent = week[now.getDay()];
+            const todayData = getRosterForDate(now), mins = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+            const active = [], endTimes = [];
+            function collect(date, code, endHour, endMinute) {
+                const d = getRosterForDate(date), day = date.getDate();
+                d.employees.filter(e => e.shifts && e.shifts[day] === code).forEach(e => {if (e.name && !active.includes(e.name)) active.push(e.name)});
+                let end = new Date(date); end.setHours(endHour, endMinute, 0, 0); if (end <= now) end.setDate(end.getDate() + 1);
+                endTimes.push(end);
+            }
+            if (mins >= 450 && mins < 930) collect(now, 'A', 15, 30);
+            if (mins >= 930 && mins < 1410) collect(now, 'B', 23, 30);
+            if (mins >= 1410) collect(now, 'C', 7, 30);
+            if (mins < 450) {let prev = new Date(now); prev.setDate(prev.getDate() - 1); collect(prev, 'C', 7, 30)}
+            if (mins >= 540 && mins < 1080) collect(now, 'D', 18, 0);
+            if (mins >= 660 && mins < 1200) collect(now, 'H', 20, 0);
+            $('onDuty').textContent = active.length ? active.join(' / ') : '暂无当班人员';
+            let nextEnd = endTimes.filter(t => t > now).sort((a, b) => a - b)[0];
+            if (nextEnd) {
+                let secs = Math.max(0, Math.floor((nextEnd - now) / 1000));
+                $('offCountdown').textContent = `${pad(Math.floor(secs / 3600))}:${pad(Math.floor(secs % 3600 / 60))}:${pad(secs % 60)}`;
+                $('offAt').textContent = `预计下一交接时间 ${pad(nextEnd.getHours())}:${pad(nextEnd.getMinutes())}`;
+            } else {$('offCountdown').textContent = '--:--:--'; $('offAt').textContent = active.length ? '未设置下班时间' : '当前无排班人员'}
+            const events = [['A', 7, 30, '早班'], ['D', 9, 0, '行政班'], ['H', 11, 0, 'H班'], ['B', 15, 30, '中班'], ['C', 23, 30, '晚班']];
+            let upcoming = null;
+            for (let offset = 0; offset <= 1 && !upcoming; offset++) {
+                let date = new Date(now); date.setDate(date.getDate() + offset);
+                for (const [code, hh, mm, label] of events) {
+                    let start = new Date(date); start.setHours(hh, mm, 0, 0);
+                    if (start <= now) continue;
+                    let roster = getRosterForDate(date), names = roster.employees.filter(e => e.shifts && e.shifts[date.getDate()] === code).map(e => e.name).filter(Boolean);
+                    if (names.length) {upcoming = {names, label, start}; break}
+                }
+            }
+            $('nextDuty').textContent = upcoming ? upcoming.names.join(' / ') : '暂无安排';
+            $('nextShiftLabel').textContent = upcoming ? `下一班：${upcoming.label} · ${pad(upcoming.start.getHours())}:${pad(upcoming.start.getMinutes())}` : '尚未安排接班人员';
+            let dayInfo = (todayData.dailyInfo || {})[now.getDate()] || {};
+            let xia = [dayInfo.xiaopeng1, dayInfo.xiaopeng2].filter(Boolean);
+            $('todayXiaopeng').textContent = xia.length ? xia.join(' / ') : '未设置';
+            $('todayManager').textContent = dayInfo.manager || '未设置';
+        }
+
+        function escapeHtml(s) {return String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]))}
+        $('month').addEventListener('change', loadMonth);
+        $('addBtn').addEventListener('click', () => {let name = prompt('请输入员工姓名：'); if (name && name.trim()) {if (data.employees.some(e => e.name.trim() === name.trim())) {toast('该员工已存在'); return } data.employees.push({name: name.trim(), shifts: {}}); persist(); render()} });
+        $('saveBtn').addEventListener('click', () => {if (!data.employees.length) {toast('请先添加员工'); return } if (data.employees.some(e => !e.name.trim())) {toast('请完善员工姓名'); return } data.saved = true; persist(true); render(); toast('本月排班已保存并锁定，已同步云端')});
+        $('editBtn').addEventListener('click', () => {if (confirm('解锁后可修改本月排班，修改后需要重新保存。确定解锁吗？')) {data.saved = false; persist(true); render(); toast('已解锁，可以编辑')} })
+        $('printBtn').addEventListener('click', () => window.print());
+        $('exportBtn').addEventListener('click', () => {
+            if (!window.XLSX) {alert('Excel 组件加载失败，请检查网络连接后刷新页面再试。'); return;}
+            let n = days(), rows = [['排班月份', key()], ['员工姓名', ...Array.from({length: n}, (_, i) => (i + 1) + '日')]];
+            data.employees.forEach(e => rows.push([e.name, ...Array.from({length: n}, (_, i) => e.shifts[i + 1] || '')]));
+            rows.push(['每日欢小朋员工1', ...Array.from({length: n}, (_, i) => (data.dailyInfo[i + 1] || {}).xiaopeng1 || '')]);
+            rows.push(['每日欢小朋员工2', ...Array.from({length: n}, (_, i) => (data.dailyInfo[i + 1] || {}).xiaopeng2 || '')]);
+            rows.push(['每日值班经理', ...Array.from({length: n}, (_, i) => (data.dailyInfo[i + 1] || {}).manager || '')]);
+            rows.push([]); rows.push(['每日班次汇总']);
+            ['A', 'B', 'C', 'H'].forEach(code => {rows.push([code + '班人数及姓名', ...Array.from({length: n}, (_, i) => {let p = data.employees.filter(e => e.shifts[i + 1] === code).map(e => e.name); return `${p.length}人：${p.join('、')}`;})]);});
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            ws['!cols'] = [{wch: 22}, ...Array.from({length: n}, () => ({wch: 16}))];
+            ws['!freeze'] = {xSplit: 1, ySplit: 2};
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '月度排班');
+            XLSX.writeFile(wb, `前厅部排班表_${key()}.xlsx`);
+        });
+        function normalizeMonth(value) {
+            if (value == null || value === '') return '';
+            if (typeof value === 'number' && window.XLSX && XLSX.SSF) {
+                value = String(value);
+            }
+            let v = String(value).trim().replace(/[年月.\/\\]/g, '-').replace(/月$/, '').replace(/日$/, '').replace(/\s+/g, '');
+            const m = v.match(/(20\d{2})-?(\d{1,2})/);
+            if (!m) return '';
+            const month = Number(m[2]);
+            return month >= 1 && month <= 12 ? `${m[1]}-${String(month).padStart(2, '0')}` : '';
+        }
+        function cellText(v) {return v == null ? '' : String(v).trim();}
+        $('importBtn').addEventListener('click', () => {
+            if (data.saved) {toast('请先解锁当前月份，再导入文件'); return;}
+            $('importFile').click();
+        });
+        $('importFile').addEventListener('change', async e => {
+            const file = e.target.files[0]; if (!file) return;
+            try {
+                if (!window.XLSX) throw new Error('Excel 组件未能加载。请检查网络连接并刷新页面后重试。');
+                if (!/\.xlsx?$/i.test(file.name)) throw new Error('请选择 Excel 文件（.xlsx 或 .xls）。');
+                const buffer = await file.arrayBuffer();
+                const workbook = XLSX.read(buffer, {type: 'array', cellDates: false});
+                if (!workbook.SheetNames.length) throw new Error('Excel 工作簿中没有工作表');
+                const sheetName = workbook.SheetNames.find(x => /月度排班|排班表|排班/i.test(x)) || workbook.SheetNames[0];
+                const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {header: 1, raw: false, defval: ''});
+                if (!rows.length) throw new Error('工作表内容为空');
+                const clean = v => cellText(v).replace(/^\uFEFF/, '').replace(/\s+/g, '').replace(/[：:]+$/, '');
+                let monthValue = '';
+                for (const r of rows) {
+                    if (clean(r[0]).includes('排班月份')) {monthValue = cellText(r[1]); break;}
+                }
+                let importMonth = normalizeMonth(monthValue);
+                if (monthValue && !importMonth) throw new Error(`无法识别排班月份“${monthValue}”。请填写如 2026-11、2026年11月 或 2026/11。`);
+                let headerIndex = rows.findIndex(r => clean(r[0]) === '员工姓名' || clean(r[0]) === '姓名');
+                if (headerIndex < 0) throw new Error('未找到“员工姓名”表头，请使用系统导出的 Excel 排班模板。');
+                const header = rows[headerIndex] || [];
+                const dateCols = [];
+                for (let c = 1; c < header.length; c++) {
+                    const h = clean(header[c]);
+                    const m = h.match(/^(\d{1,2})(?:日|号)?$/);
+                    if (m) dateCols.push({col: c, day: Number(m[1])});
+                }
+                if (dateCols.length < 28 || dateCols.length > 31 || dateCols.some(x => x.day < 1 || x.day > 31))
+                    throw new Error('日期表头不完整。请确保员工姓名右侧包含 1日、2日……等日期列。');
+                if (new Set(dateCols.map(x => x.day)).size !== dateCols.length) throw new Error('日期表头存在重复日期，请检查后重试。');
+                let employeeRows = [], dailyInfo = {}, seen = new Set();
+                const dailyAliases = new Map([
+                    ['每日欢小朋员工1', 'xiaopeng1'], ['欢小朋员工1', 'xiaopeng1'], ['每日欢小朋1', 'xiaopeng1'],
+                    ['每日欢小朋员工2', 'xiaopeng2'], ['欢小朋员工2', 'xiaopeng2'], ['每日欢小朋2', 'xiaopeng2'],
+                    ['每日值班经理', 'manager'], ['值班经理', 'manager']
+                ]);
+                for (let i = headerIndex + 1; i < rows.length; i++) {
+                    const r = rows[i] || []; const label = clean(r[0]); if (!label) continue;
+                    const dailyField = dailyAliases.get(label);
+                    if (dailyField) {
+                        for (const dc of dateCols) {if (!dailyInfo[dc.day]) dailyInfo[dc.day] = {}; dailyInfo[dc.day][dailyField] = cellText(r[dc.col]);}
+                        continue;
+                    }
+                    if (label === '排班月份' || label === '员工姓名' || label === '每日班次汇总' || /班人数及姓名$/.test(label)) continue;
+                    const name = cellText(r[0]);
+                    if (!name) continue;
+                    if (seen.has(name)) throw new Error(`第 ${i + 1} 行员工“${name}”重复，请检查后重试。`);
+                    seen.add(name);
+                    const shifts = {};
+                    for (const dc of dateCols) {
+                        const v = cellText(r[dc.col]).toUpperCase();
+                        if (!v) continue;
+                        if (shiftsMap.has(v)) shifts[dc.day] = v;
+                    }
+                    employeeRows.push({name, shifts});
+                }
+                if (!employeeRows.length) throw new Error('没有读取到员工排班数据，请检查员工姓名及日期列。');
+                if (importMonth && importMonth !== key()) {
+                    if (!confirm(`文件属于 ${importMonth}，当前选择的是 ${key()}。是否切换到文件月份并导入？`)) return;
+                    $('month').value = importMonth; currentKey = importMonth;
+                }
+                if (!confirm(`已识别 ${employeeRows.length} 位员工、${dateCols.length} 个日期列${importMonth ? '（' + importMonth + '）' : ''}。导入后将替换当前月份的数据，是否继续？`)) return;
+                data = {employees: employeeRows, dailyInfo, leaveStats: data.leaveStats || {}, saved: false}; persist(true); render(); toast(`成功导入 ${employeeRows.length} 位员工的 Excel 排班表`);
+            } catch (err) {alert('Excel 导入失败：' + err.message);}
+            finally {e.target.value = '';}
+        });
+        const shiftsMap = new Set(shifts.map(x => x[0]).filter(Boolean).concat(['']));
+
+        $('managerUpload').addEventListener('click', () => $('managerFile').click());
+        $('managerFile').addEventListener('change', async e => {
+            const file = e.target.files[0]; if (!file) return;
+            try {
+                const buf = await file.arrayBuffer(); let txt;
+                try {txt = new TextDecoder('utf-8', {fatal: true}).decode(buf)} catch (_) {txt = new TextDecoder('gbk').decode(buf)}
+                txt = txt.replace(/^\uFEFF/, '');
+                const names = txt.split(/[\r\n,，\t;；]+/).map(x => x.replace(/^["']|["']$/g, '').trim()).filter(Boolean);
+                const cleaned = names.filter(x => !['值班经理', '经理姓名', '姓名', '员工姓名'].includes(x));
+                if (!cleaned.length) throw new Error('没有读取到经理姓名');
+                managerList = [...new Set([...managerList, ...cleaned])]; renderManagerList(); renderDailyInfo(); toast(`已读取 ${cleaned.length} 个经理姓名，请点击保存经理名单`);
+            } catch (err) {alert('读取经理名单失败：' + err.message)}
+            finally {e.target.value = ''}
+        });
+        $('managerAdd').addEventListener('click', () => {addManagerName($('managerManual').value); $('managerManual').value = ''});
+        $('managerManual').addEventListener('keydown', e => {if (e.key === 'Enter') {$('managerAdd').click()} });
+        $('managerSave').addEventListener('click', async () => {
+            await pushManagerListToCloud();
+            renderManagerList();
+            renderDailyInfo();
+            toast('值班经理名单已保存并同步云端');
+        });
+        setInterval(updateDashboard, 1000);
+
+        (async function init() {
+            let now = new Date();
+            $('month').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            renderLegend();
+            await pullManagerListFromCloud();
+            await loadMonth();
+            subscribeRealtime();
+        })();
+    </script>
+</body>
+
+</html>
