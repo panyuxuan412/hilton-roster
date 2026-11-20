@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>公安 & 西软入住信息智能核对工具</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #eef4ff;
+      --panel: rgba(255, 255, 255, .86);
+      --panel-strong: rgba(255, 255, 255, .94);
+      --ink: #17233d;
+      --muted: #52627d;
+      --line: rgba(188, 205, 234, .75);
+      --primary: #315efb;
+      --cyan: #08919b;
+      --amber: #b4690e;
+      --danger: #b4233c;
+      --glass-highlight: rgba(255, 255, 255, .88);
+      --shadow: 0 18px 44px rgba(27, 54, 112, .12), inset 0 1px 0 var(--glass-highlight);
+      --shadow-hover: 0 24px 54px rgba(27, 54, 112, .18), 0 0 0 1px rgba(255, 255, 255, .95), inset 0 1px 0 rgba(255, 255, 255, .98);
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      color: var(--ink);
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, sans-serif;
+      background:
+        radial-gradient(circle at 10% 6%, rgba(88, 144, 255, .24), transparent 36%),
+        radial-gradient(circle at 90% 14%, rgba(36, 206, 194, .20), transparent 34%),
+        radial-gradient(circle at 50% 88%, rgba(138, 108, 255, .14), transparent 42%),
+        linear-gradient(135deg, #f5f8ff, #eaf2ff 55%, #f3faff);
+      background-attachment: fixed;
+      overflow-x: hidden
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 1160px;
+      margin: 22px auto;
+      padding: 0 clamp(14px, 3vw, 24px) 60px
+    }
+
+    .glass {
+      background: var(--panel);
+      backdrop-filter: blur(36px) saturate(1.65);
+      -webkit-backdrop-filter: blur(36px) saturate(1.65);
+      border: 1px solid rgba(255, 255, 255, .84);
+      box-shadow: var(--shadow);
+      transition: transform .26s cubic-bezier(.22, 1, .36, 1), box-shadow .26s ease, border-color .26s ease, opacity .38s ease;
+    }
+
+    .glass:hover {
+      border-color: rgba(255, 255, 255, .98);
+    }
+
+    /* 统一顶部导航 */
+    .top-nav-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      padding: 10px 16px;
+      border-radius: 18px;
+    }
+
+    .top-nav-brand {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #1b3470;
+      letter-spacing: .3px;
+    }
+
+    .top-nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+      border-radius: 999px;
+      background: rgba(235, 242, 255, .85);
+      border: 1px solid #c9d8f4;
+    }
+
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #465a7e;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease;
+    }
+
+    .nav-link:hover {
+      color: #1b3470;
+      background: rgba(255, 255, 255, .85);
+      transform: translateY(-1px);
+    }
+
+    .nav-link.is-active {
+      color: #fff;
+      background: linear-gradient(105deg, #315efb, #5d4ee8);
+      box-shadow: 0 4px 12px rgba(49, 94, 251, .28);
+    }
+
+    /* 亮色主横幅 */
+    .hero {
+      border-radius: 24px;
+      padding: 28px 32px;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(115deg, rgba(29, 60, 142, .92), rgba(58, 106, 232, .88) 62%, rgba(30, 166, 198, .86));
+      border: 1px solid rgba(255, 255, 255, .55);
+      box-shadow: 0 14px 36px rgba(28, 62, 138, .18), inset 0 1px 0 rgba(255, 255, 255, .45);
+      color: #fff;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .14), transparent 55%);
+    }
+
+    .hero > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: #dff3ff;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      margin: 8px 0 6px;
+      font-size: 25px;
+      letter-spacing: .5px;
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 2px 10px rgba(13, 33, 84, .25);
+    }
+
+    .hero p {
+      margin: 0;
+      color: #eaf2ff;
+      font-size: 13.5px;
+      line-height: 1.75;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .step {
+      background: rgba(255, 255, 255, .16);
+      border: 1px solid rgba(255, 255, 255, .34);
+      border-radius: 16px;
+      padding: 13px 15px;
+      font-size: 12.5px;
+      color: #f4f8ff;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    .step b {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 3px;
+      color: #fff;
+    }
+
+    .uploads {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 18px 0;
+    }
+
+    .panel {
+      border-radius: 20px;
+      padding: 20px;
+    }
+
+    .panel:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .panel h2 {
+      font-size: 15.5px;
+      margin: 0 0 6px;
+      color: #1b3470;
+      font-weight: 800;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .drop {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      min-height: 176px;
+      margin-top: 14px;
+      padding: 20px 18px;
+      border: 1.5px dashed #b4c8ec;
+      border-radius: 16px;
+      text-align: center;
+      line-height: 1.6;
+      background: rgba(244, 248, 255, .72);
+      cursor: pointer;
+      transition: background .25s, border-color .25s, transform .25s, box-shadow .25s;
+      overflow: hidden;
+    }
+
+    .drop:hover,
+    .drop.drag {
+      border-color: var(--primary);
+      background: rgba(232, 240, 255, .95);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(49, 94, 251, .12);
+    }
+
+    .drop:focus-within {
+      outline: 3px solid rgba(49, 94, 251, .25);
+      outline-offset: 2px;
+    }
+
+    .drop .symbol {
+      font-size: 26px;
+      line-height: 1.2;
+    }
+
+    .drop strong {
+      display: block;
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 4px 0 0;
+      color: var(--ink);
+    }
+
+    .drop .hint {
+      display: block;
+      margin: 0;
+    }
+
+    .drop .filename {
+      display: block;
+      max-width: 100%;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #244fc5;
+      overflow-wrap: anywhere;
+      margin-top: 2px;
+      font-weight: 700;
+    }
+
+    input[type=file] {
+      display: none;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 16px 0 20px;
+    }
+
+    button {
+      border: 1px solid rgba(203, 218, 240, .95);
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .22s cubic-bezier(.22, 1, .36, 1), box-shadow .22s ease, background .2s ease, border-color .2s ease;
+      color: #263653;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(37, 70, 130, .14);
+      border-color: rgba(49, 94, 251, .38);
+    }
+
+    button:active {
+      transform: translateY(0) scale(.98);
+    }
+
+    .primary {
+      background: linear-gradient(105deg, #315efb, #5d4ee8);
+      color: #fff;
+      border-color: rgba(255, 255, 255, .35);
+      box-shadow: 0 6px 18px rgba(49, 94, 251, .28);
+    }
+
+    .secondary {
+      background: rgba(255, 255, 255, .9);
+      color: #263653;
+    }
+
+    .secondary:hover {
+      background: #e9f0fc;
+    }
+
+    .secondary.active {
+      background: linear-gradient(105deg, #244fc5, #4d42d6);
+      color: #fff;
+      border-color: transparent;
+    }
+
+    .danger {
+      background: rgba(255, 240, 241, .94);
+      color: var(--danger);
+      border-color: #ffd0d5;
+    }
+
+    .danger:hover {
+      background: #ffe3e6;
+    }
+
+    .wl-btn {
+      background: #e3f6f7;
+      color: #07747c;
+      border: 1px solid #b5e4e8;
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 9px;
+      white-space: nowrap;
+    }
+
+    .wl-btn:hover {
+      background: #d0eff1;
+    }
+
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .status {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 16px 0 18px;
+    }
+
+    .metric {
+      border-radius: 18px;
+      padding: 18px;
+      cursor: pointer;
+    }
+
+    .metric:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .metric .n {
+      font-size: 30px;
+      font-weight: 800;
+      line-height: 1.15;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric .t {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+      font-weight: 600;
+    }
+
+    .metric.blue .n {
+      color: #244fc5;
+    }
+
+    .metric.orange .n {
+      color: var(--amber);
+    }
+
+    .metric.green .n {
+      color: var(--cyan);
+    }
+
+    /* Card Stack 切换控制条 */
+    .stack-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      border-radius: 18px;
+    }
+
+    .stack-tabs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .stack-tab {
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 700;
+      background: rgba(240, 245, 255, .85);
+      color: #3c4f70;
+      border: 1px solid #d5e1f4;
+    }
+
+    .stack-tab:hover {
+      background: #e4edfc;
+      color: #1b3470;
+    }
+
+    .stack-tab.active {
+      background: linear-gradient(105deg, #315efb, #5d4ee8);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 5px 14px rgba(49, 94, 251, .24);
+    }
+
+    .stack-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mini {
+      padding: 7px 12px;
+      font-size: 12px;
+      border-radius: 10px;
+    }
+
+    /* Card Stack 层叠卡组容器 */
+    .results {
+      position: relative;
+    }
+
+    .results.stack-mode {
+      padding-bottom: 36px;
+      margin-bottom: 300px;
+    }
+
+    .result-panel {
+      border-radius: 20px;
+      padding: 0;
+      overflow: hidden;
+      background: var(--panel-strong);
+      backdrop-filter: blur(36px) saturate(1.65);
+      -webkit-backdrop-filter: blur(36px) saturate(1.65);
+      border: 1px solid rgba(255, 255, 255, .88);
+      box-shadow: var(--shadow);
+      transition: transform .4s cubic-bezier(0.22, 1, 0.36, 1), opacity .4s ease, box-shadow .35s ease;
+    }
+
+    .results.stack-mode .result-panel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      transform-origin: top center;
+    }
+
+    .results.stack-mode .result-panel.stack-pos-0 {
+      position: relative;
+      z-index: 3;
+      opacity: 1;
+      filter: none;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+
+    .results.stack-mode .result-panel:not(.stack-pos-0) {
+      background: rgba(255, 255, 255, .42);
+      backdrop-filter: blur(28px) saturate(1.25);
+      -webkit-backdrop-filter: blur(28px) saturate(1.25);
+      border-color: rgba(255, 255, 255, .62);
+      box-shadow: 0 12px 30px rgba(27, 54, 112, .08), inset 0 1px 0 rgba(255, 255, 255, .65);
+    }
+
+    .results.stack-mode .result-panel:not(.stack-pos-0)::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(180deg, rgba(244, 248, 255, .38), rgba(235, 243, 255, .72));
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .results.stack-mode .result-panel:not(.stack-pos-0) > * {
+      opacity: .22;
+      filter: blur(4px);
+      transition: opacity .24s ease, filter .24s ease;
+    }
+
+    .results.stack-mode .result-panel.stack-pos-0 > * {
+      opacity: 1;
+      filter: none;
+      transition: opacity .28s ease .08s, filter .28s ease .08s;
+    }
+
+    .results.stack-mode .result-panel.stack-pos-1 {
+      z-index: 2;
+      opacity: .56;
+      filter: blur(6px) saturate(.88);
+      transform: translate3d(0, 14px, 0) scale(0.975);
+      pointer-events: none;
+    }
+
+    .results.stack-mode .result-panel.stack-pos-2 {
+      z-index: 1;
+      opacity: .34;
+      filter: blur(10px) saturate(.82);
+      transform: translate3d(0, 28px, 0) scale(0.95);
+      pointer-events: none;
+    }
+
+    .results.stack-mode .result-panel.stack-pos-hidden {
+      opacity: 0;
+      filter: blur(16px);
+      transform: translate3d(0, 36px, 0) scale(0.93);
+      pointer-events: none;
+    }
+
+    .results.list-mode {
+      display: grid;
+      gap: 16px;
+    }
+
+    .results.list-mode .result-panel {
+      position: relative;
+      opacity: 1;
+      transform: none;
+    }
+
+    .result-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid #dce5f1;
+      gap: 10px;
+      background: rgba(244, 248, 255, .75);
+    }
+
+    .result-head h3 {
+      margin: 0;
+      font-size: 15.5px;
+      color: #1b3470;
+      font-weight: 800;
+    }
+
+    .result-head p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .tag {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: #e8efff;
+      color: #244fc5;
+      white-space: nowrap;
+      border: 1px solid #cddbfe;
+    }
+
+    .rows {
+      padding: 8px 20px 18px;
+      max-height: 420px;
+      overflow-y: auto;
+    }
+
+    .results.list-mode .rows {
+      max-height: none;
+    }
+
+    .empty {
+      padding: 26px 8px;
+      color: var(--cyan);
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .person {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 4px;
+      border-bottom: 1px solid #e6edf7;
+      gap: 14px;
+      font-size: 14px;
+    }
+
+    .person:last-child {
+      border-bottom: 0;
+    }
+
+    .copyable {
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background .16s ease, color .16s ease, transform .12s ease, box-shadow .16s ease;
+      user-select: none;
+    }
+
+    .copyable:hover {
+      box-shadow: 0 2px 8px rgba(49, 94, 251, .16);
+      transform: translateY(-1px);
+    }
+
+    .copyable:active {
+      transform: scale(.96);
+    }
+
+    .room {
+      font-variant-numeric: tabular-nums;
+      font-weight: 800;
+      min-width: 56px;
+      color: #1b3470;
+      background: #edf3ff;
+      padding: 3px 8px;
+      border-radius: 7px;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .room.copyable:hover {
+      background: #315efb;
+      color: #fff;
+    }
+
+    .name {
+      flex: 1;
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .name-text {
+      display: inline-block;
+      padding: 2px 6px;
+      margin-left: -6px;
+      border-radius: 6px;
+    }
+
+    .name-text.copyable:hover {
+      background: #e8efff;
+      color: #244fc5;
+    }
+
+    .move {
+      color: var(--muted);
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .move-chip {
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: rgba(237, 243, 255, .75);
+      color: #3b4f73;
+      font-weight: 600;
+    }
+
+    .move-chip.copyable:hover {
+      background: #315efb;
+      color: #fff;
+    }
+
+    .move-chip.is-soft {
+      color: #244fc5;
+      font-weight: 700;
+    }
+
+    .copy-toast {
+      position: fixed;
+      bottom: 26px;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: rgba(23, 35, 61, .92);
+      color: #fff;
+      padding: 9px 18px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 10px 26px rgba(24, 52, 112, .24);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease, transform .2s ease;
+      z-index: 9999;
+    }
+
+    .copy-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .rowtools {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    /* 白名单面板 */
+    .wl-panel {
+      margin-top: 20px;
+    }
+
+    .wl-body {
+      padding: 16px 20px 20px;
+    }
+
+    .wl-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 2px;
+    }
+
+    .wl-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 12px;
+      background: #edf3ff;
+      border: 1px solid #cddbfe;
+      border-radius: 20px;
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .wl-chip b {
+      color: #244fc5;
+    }
+
+    .wl-chip .meta {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .wl-remove {
+      background: none;
+      border: 0;
+      padding: 0 2px;
+      color: #6b7d9c;
+      font-size: 15px;
+      line-height: 1;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .wl-remove:hover {
+      color: var(--danger);
+      box-shadow: none;
+    }
+
+    .wl-empty {
+      color: var(--muted);
+      font-size: 13px;
+      padding: 8px 0;
+    }
+
+    .note {
+      margin-top: 16px;
+      padding: 15px 18px;
+      background: rgba(255, 246, 220, .85);
+      border: 1px solid #f0d796;
+      border-radius: 16px;
+      color: #6e4f12;
+      font-size: 12px;
+      line-height: 1.8;
+      backdrop-filter: blur(24px);
+    }
+
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 11.5px;
+      margin-top: 18px;
+      padding: 12px 16px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .78);
+      border: 1px solid rgba(255, 255, 255, .86);
+    }
+
+    @media(max-width:700px) {
+      .wrap {
+        margin: 14px auto;
+        padding: 0 12px 40px;
+      }
+
+      .top-nav-bar {
+        padding: 10px 12px;
+        border-radius: 14px;
+      }
+
+      .top-nav {
+        flex-wrap: wrap;
+        border-radius: 12px;
+      }
+
+      .drop {
+        min-height: 160px;
+        padding: 18px 14px;
+      }
+
+      .hero {
+        padding: 22px;
+        border-radius: 20px;
+      }
+
+      .hero h1 {
+        font-size: 21px;
+      }
+
+      .steps {
+        grid-template-columns: 1fr;
+      }
+
+      .uploads {
+        grid-template-columns: 1fr;
+      }
+
+      .summary {
+        gap: 8px;
+      }
+
+      .metric {
+        padding: 12px;
+        border-radius: 15px;
+      }
+
+      .metric .n {
+        font-size: 23px;
+      }
+
+      .result-head {
+        padding: 15px;
+        flex-wrap: wrap;
+      }
+
+      .rows {
+        padding: 6px 15px 14px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="top-nav-bar glass">
+      <span class="top-nav-brand">武汉青年路希尔顿欢朋酒店 · 前厅工作台</span>
+      <nav class="top-nav" aria-label="系统功能切换">
+        <a class="nav-link" href="./index.html">月度排班</a>
+        <a class="nav-link is-active" href="./psb-check.html">公安西软核对</a>
+        <a class="nav-link" href="./revenue-report.html">营业收入汇总</a>
+      </nav>
+    </div>
+
+    <header class="hero">
+      <div class="eyebrow">FRONT OFFICE · PSB &amp; PMS CHECK</div>
+      <h1>公安 &amp; 西软入住信息智能核对</h1>
+      <p>上传两份系统导出的入住表格，自动找出房号不一致、公安系统待退房，以及公安系统待补录的住客。</p>
+      <div class="steps">
+        <div class="step"><b>01 · 换房核对</b>同一客人姓名，两个系统房号不一致</div>
+        <div class="step"><b>02 · 退房核对</b>公安有记录，西软已无该客人</div>
+        <div class="step"><b>03 · 证件补录</b>西软有记录，公安尚未登记</div>
+      </div>
+    </header>
+
+    <section class="uploads">
+      <div class="panel glass">
+        <h2>① 公安系统入住信息</h2>
+        <div class="hint">文件：在住旅客报表 · 默认读取 A 列房号、C 列姓名</div>
+        <label class="drop" id="policeDrop" for="policeFile">
+          <div class="symbol">📄</div><strong>点击选择或拖入公安系统文件</strong>
+          <span class="hint">支持 Excel .xls / .xlsx</span>
+          <div class="filename" id="policeName">尚未上传文件</div>
+        </label>
+        <input id="policeFile" type="file" accept=".xls,.xlsx,.xlsm">
+      </div>
+      <div class="panel glass">
+        <h2>② 西软系统当前在店住客</h2>
+        <div class="hint">文件：当前在店住客列表 · 默认读取 A 列房号、E 列姓名</div>
+        <label class="drop" id="softDrop" for="softFile">
+          <div class="symbol">📊</div><strong>点击选择或拖入西软系统文件</strong>
+          <span class="hint">支持 Excel .xls / .xlsx</span>
+          <div class="filename" id="softName">尚未上传文件</div>
+        </label>
+        <input id="softFile" type="file" accept=".xls,.xlsx,.xlsm">
+      </div>
+    </section>
+
+    <div class="actions">
+      <button class="primary" id="compareBtn" disabled>开始智能核对</button>
+      <button class="secondary" id="resetBtn">重新上传</button>
+      <span class="status" id="status">请先上传两份 Excel 文件</span>
+    </div>
+
+    <div id="output" hidden>
+      <div class="summary">
+        <div class="metric glass blue" onclick="focusCard('move')">
+          <div class="n" id="countMove">0</div>
+          <div class="t">需要换房核对（点击置顶）</div>
+        </div>
+        <div class="metric glass orange" onclick="focusCard('checkout')">
+          <div class="n" id="countCheckout">0</div>
+          <div class="t">需要公安退房（点击置顶）</div>
+        </div>
+        <div class="metric glass green" onclick="focusCard('add')">
+          <div class="n" id="countAdd">0</div>
+          <div class="t">需要补传证件（点击置顶）</div>
+        </div>
+      </div>
+
+      <div class="stack-toolbar glass">
+        <div class="stack-tabs">
+          <button class="stack-tab active" data-card="move" onclick="focusCard('move')">① 换房核对</button>
+          <button class="stack-tab" data-card="checkout" onclick="focusCard('checkout')">② 公安退房</button>
+          <button class="stack-tab" data-card="add" onclick="focusCard('add')">③ 公安待补录</button>
+        </div>
+        <div class="stack-controls">
+          <button class="secondary mini" onclick="cycleCard(-1)">← 上一张</button>
+          <button class="secondary mini" onclick="cycleCard(1)">下一张 →</button>
+          <button class="secondary mini" id="viewModeBtn" onclick="toggleViewMode()">展开全部列表</button>
+        </div>
+      </div>
+
+      <div class="results stack-mode" id="resultsContainer">
+        <section class="result-panel" id="card-move" data-key="move">
+          <div class="result-head">
+            <div>
+              <h3>① 换房核对名单</h3>
+              <p>同名客人房号不同；按西软房号排序</p>
+            </div>
+            <div class="rowtools"><span class="tag" id="moveTag">0 人</span><button class="secondary mini"
+                onclick="copyList('move')">复制名单</button></div>
+          </div>
+          <div class="rows" id="moveRows"></div>
+        </section>
+        <section class="result-panel" id="card-checkout" data-key="checkout">
+          <div class="result-head">
+            <div>
+              <h3>② 公安系统退房名单</h3>
+              <p>公安系统有记录、西软系统已无记录；按房号排序</p>
+            </div>
+            <div class="rowtools"><span class="tag" id="checkoutTag">0 人</span><button class="secondary mini"
+                onclick="copyList('checkout')">复制名单</button></div>
+          </div>
+          <div class="rows" id="checkoutRows"></div>
+        </section>
+        <section class="result-panel" id="card-add" data-key="add">
+          <div class="result-head">
+            <div>
+              <h3>③ 公安系统待补录名单</h3>
+              <p>西软系统有记录、公安系统尚无记录（已排除白名单）；按房号排序</p>
+            </div>
+            <div class="rowtools"><span class="tag" id="addTag">0 人</span><button class="secondary mini"
+                onclick="copyList('add')">复制名单</button></div>
+          </div>
+          <div class="rows" id="addRows"></div>
+        </section>
+      </div>
+
+      <div class="actions"><button class="primary" onclick="downloadAll()">下载核对结果（TXT）</button><span
+          class="status">可分别复制每份名单，或一次性下载全部结果。</span></div>
+      <div class="note">
+        核对规则说明：以姓名作为跨系统匹配依据；同名且房号相同视为一致。同名但房号不同列入换房名单。第二、三份名单分别列出仅存在于公安系统、仅存在于西软系统的记录。加入“待补录白名单”的住客将默认已上传，不再出现在第三份待补录名单中，数据长久保存在当前浏览器中，直至点击“一键清除白名单”。若同一姓名在任一系统出现多次，程序会优先匹配房号相同的记录，再对剩余同名记录进行配对。请在执行操作前复核同名住客，避免重名造成误操作。
+      </div>
+    </div>
+
+    <!-- 独立白名单查看与管理区域 -->
+    <section class="result-panel wl-panel" id="whitelistPanel">
+      <div class="result-head">
+        <div>
+          <h3>🛡️ 公安待补录白名单</h3>
+          <p>默认已上传的住客（如外籍客人）会长久保存在本机浏览器中，不再提示待补录</p>
+        </div>
+        <div class="rowtools">
+          <span class="tag" id="whitelistTag">0 人</span>
+          <button class="danger mini" id="clearWhitelistBtn" onclick="clearWhitelist()">一键清除白名单</button>
+        </div>
+      </div>
+      <div class="wl-body">
+        <div class="wl-list" id="whitelistRows"></div>
+      </div>
+    </section>
+
+    <div class="footer">本工具在浏览器本地读取文件与白名单数据，表格内容不会上传到服务器。Excel 解析组件需联网加载。 · 作者：Frozen</div>
+  </div>
+  <div class="copy-toast" id="copyToast"></div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const WHITELIST_KEY = 'hotel_psb_missing_whitelist_v1';
+    const CARD_ORDER = ['move', 'checkout', 'add'];
+    let policeFile = null, softFile = null, lastResult = null;
+    let activeCardKey = 'add';
+    let isListMode = false;
+
+    function setupInput(id, nameId, dropId, which) {
+      const input = $(id), drop = $(dropId);
+      input.addEventListener('change', () => {if (input.files[0]) setFile(which, input.files[0], nameId)});
+      ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => {e.preventDefault(); drop.classList.add('drag')}));
+      ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => {e.preventDefault(); drop.classList.remove('drag')}));
+      drop.addEventListener('drop', e => {const f = e.dataTransfer.files[0]; if (f) setFile(which, f, nameId)});
+    }
+    function setFile(which, file, nameId) {
+      if (!/\.(xls|xlsx|xlsm)$/i.test(file.name)) {alert('请选择 .xls 或 .xlsx 格式的 Excel 文件'); return }
+      if (which === 'police') policeFile = file; else softFile = file;
+      $(nameId).textContent = '✓ ' + file.name;
+      $('compareBtn').disabled = !(policeFile && softFile);
+      $('status').textContent = policeFile && softFile ? '两份文件已就绪，可以开始核对' : '请继续上传另一份文件';
+    }
+    setupInput('policeFile', 'policeName', 'policeDrop', 'police');
+    setupInput('softFile', 'softName', 'softDrop', 'soft');
+    $('compareBtn').addEventListener('click', compare);
+    $('resetBtn').addEventListener('click', () => {
+      policeFile = softFile = null; lastResult = null;
+      $('policeFile').value = ''; $('softFile').value = '';
+      $('policeName').textContent = '尚未上传文件'; $('softName').textContent = '尚未上传文件';
+      $('compareBtn').disabled = true; $('output').hidden = true; $('status').textContent = '请先上传两份 Excel 文件';
+    });
+
+    /* Card Stack 层叠交互 */
+    function applyCardStack() {
+      const container = $('resultsContainer');
+      if (!container) return;
+      if (isListMode) {
+        container.classList.remove('stack-mode');
+        container.classList.add('list-mode');
+        CARD_ORDER.forEach(key => {
+          const el = $('card-' + key);
+          if (el) el.className = 'result-panel';
+        });
+        return;
+      }
+      container.classList.remove('list-mode');
+      container.classList.add('stack-mode');
+      const startIdx = CARD_ORDER.indexOf(activeCardKey);
+      const ordered = [
+        ...CARD_ORDER.slice(startIdx),
+        ...CARD_ORDER.slice(0, startIdx)
+      ];
+      ordered.forEach((key, idx) => {
+        const el = $('card-' + key);
+        if (!el) return;
+        el.className = 'result-panel ' + (idx < 3 ? 'stack-pos-' + idx : 'stack-pos-hidden');
+      });
+      document.querySelectorAll('.stack-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.card === activeCardKey);
+      });
+    }
+    function focusCard(key) {
+      if (!CARD_ORDER.includes(key)) return;
+      activeCardKey = key;
+      if (isListMode) {
+        const target = $('card-' + key);
+        if (target) target.scrollIntoView({behavior: 'smooth', block: 'start'});
+      }
+      applyCardStack();
+    }
+    function cycleCard(delta) {
+      const idx = CARD_ORDER.indexOf(activeCardKey);
+      const nextIdx = (idx + delta + CARD_ORDER.length) % CARD_ORDER.length;
+      activeCardKey = CARD_ORDER[nextIdx];
+      applyCardStack();
+    }
+    function toggleViewMode() {
+      isListMode = !isListMode;
+      $('viewModeBtn').textContent = isListMode ? '切换层叠卡组' : '展开全部列表';
+      $('viewModeBtn').classList.toggle('active', isListMode);
+      applyCardStack();
+    }
+
+    function clean(v) {return String(v ?? '').replace(/\u00a0/g, ' ').replace(/\u3000/g, ' ').trim().replace(/\s+/g, '')}
+    function room(v) {return clean(v).replace(/\.0$/, '')}
+    function normName(v) {return clean(v).replace(/[·•]/g, '·')}
+    function isRoomHeader(v) {const s = clean(v); return /^(房号|入住房号|房间号|房间号码)$/.test(s)}
+    function isNameHeader(v) {return /^(姓名|客人姓名|住客姓名)$/.test(clean(v))}
+    function locateHeader(rows, system) {
+      for (let r = 0; r < Math.min(rows.length, 15); r++) {
+        const vals = rows[r] || []; let ri = -1, ni = -1;
+        vals.forEach((v, c) => {if (ri < 0 && isRoomHeader(v)) ri = c; if (ni < 0 && isNameHeader(v)) ni = c});
+        if (ri >= 0 && ni >= 0) return {row: r, roomCol: ri, nameCol: ni};
+      }
+      return system === 'police' ? {row: 1, roomCol: 0, nameCol: 2} : {row: 0, roomCol: 0, nameCol: 4};
+    }
+    async function readGuests(file, system) {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, {type: 'array', cellDates: false});
+      if (!wb.SheetNames.length) throw new Error(file.name + ' 中没有工作表');
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header: 1, raw: false, defval: ''});
+      const h = locateHeader(rows, system), out = [];
+      for (let i = h.row + 1; i < rows.length; i++) {
+        const row = rows[i] || [], rm = room(row[h.roomCol]), nm = normName(row[h.nameCol]);
+        if (!rm || !nm) continue;
+        if (isRoomHeader(rm) || isNameHeader(nm)) continue;
+        out.push({room: rm, name: nm, sourceRow: i + 1});
+      }
+      if (!out.length) throw new Error((system === 'police' ? '公安' : '西软') + '文件未读取到有效的房号和姓名，请检查表格列位置或表头。');
+      return out;
+    }
+    function roomSort(a, b) {
+      const x = String(a), y = String(b), nx = Number(x), ny = Number(y);
+      if (Number.isFinite(nx) && Number.isFinite(ny) && x !== '' && y !== '') return nx - ny || x.localeCompare(y, 'zh');
+      return x.localeCompare(y, 'zh', {numeric: true, sensitivity: 'base'});
+    }
+
+    /* 白名单读写与管理 */
+    function getWhitelist() {
+      try {
+        const raw = localStorage.getItem(WHITELIST_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        console.error('读取白名单失败', e);
+        return [];
+      }
+    }
+    function saveWhitelist(list) {
+      localStorage.setItem(WHITELIST_KEY, JSON.stringify(list));
+      renderWhitelist();
+    }
+    function getWhitelistNameSet() {
+      return new Set(getWhitelist().map(x => normName(x.name)));
+    }
+    function addToWhitelist(guestName, guestRoom = '') {
+      const nm = normName(guestName);
+      const rm = room(guestRoom);
+      if (!nm) return;
+      const list = getWhitelist();
+      if (!list.some(x => normName(x.name) === nm)) {
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        list.push({name: nm, room: rm, addedAt: dateStr});
+        saveWhitelist(list);
+      }
+      refreshCheckView();
+    }
+    function removeFromWhitelist(guestName) {
+      const nm = normName(guestName);
+      const next = getWhitelist().filter(x => normName(x.name) !== nm);
+      saveWhitelist(next);
+      refreshCheckView();
+    }
+    function clearWhitelist() {
+      const list = getWhitelist();
+      if (!list.length) {alert('当前白名单已经是空的'); return }
+      if (!confirm(`确定要一键清除全部 ${list.length} 名白名单人员吗？清除后他们将重新出现在公安系统待补录核对中。`)) return;
+      localStorage.removeItem(WHITELIST_KEY);
+      renderWhitelist();
+      refreshCheckView();
+    }
+    function renderWhitelist() {
+      const list = getWhitelist();
+      $('whitelistTag').textContent = list.length + ' 人';
+      $('clearWhitelistBtn').disabled = list.length === 0;
+      const el = $('whitelistRows');
+      if (!list.length) {
+        el.innerHTML = '<div class="wl-empty">暂无白名单人员。在“③ 公安系统待补录名单”中点击“加入白名单”即可长久保存。</div>';
+        return;
+      }
+      el.innerHTML = list.map(item => `
+    <span class="wl-chip">
+      <span>${item.room ? `<b>${esc(item.room)}</b> · ` : ''}<span>${esc(item.name)}</span></span>
+      ${item.addedAt ? `<span class="meta">(${esc(item.addedAt)})</span>` : ''}
+      <button class="wl-remove" title="移出白名单" onclick="removeFromWhitelist('${escJs(item.name)}')">×</button>
+    </span>
+  `).join('');
+    }
+
+    function compareRows(police, soft) {
+      const pMap = new Map(), sMap = new Map();
+      for (const x of police) {if (!pMap.has(x.name)) pMap.set(x.name, []); pMap.get(x.name).push({...x, used: false})}
+      for (const x of soft) {if (!sMap.has(x.name)) sMap.set(x.name, []); sMap.get(x.name).push({...x, used: false})}
+      const moves = [], pOnly = [], sOnlyAll = [];
+      const names = new Set([...pMap.keys(), ...sMap.keys()]);
+      for (const name of names) {
+        const ps = pMap.get(name) || [], ss = sMap.get(name) || [];
+        for (const p of ps) {const exact = ss.find(s => !s.used && s.room === p.room); if (exact) {p.used = true; exact.used = true} }
+        const pr = ps.filter(x => !x.used), sr = ss.filter(x => !x.used);
+        const paired = Math.min(pr.length, sr.length);
+        for (let i = 0; i < paired; i++) {
+          moves.push({name, policeRoom: pr[i].room, softRoom: sr[i].room});
+          pr[i].used = true; sr[i].used = true;
+        }
+        for (const p of ps) if (!p.used) pOnly.push(p);
+        for (const s of ss) if (!s.used) sOnlyAll.push(s);
+      }
+      moves.sort((a, b) => roomSort(a.softRoom, b.softRoom) || a.name.localeCompare(b.name, 'zh'));
+      pOnly.sort((a, b) => roomSort(a.room, b.room) || a.name.localeCompare(b.name, 'zh'));
+      sOnlyAll.sort((a, b) => roomSort(a.room, b.room) || a.name.localeCompare(b.name, 'zh'));
+      return {moves, pOnly, sOnlyAll, policeCount: police.length, softCount: soft.length};
+    }
+    function getFilteredAddList(result) {
+      if (!result) return [];
+      const wlSet = getWhitelistNameSet();
+      return result.sOnlyAll.filter(x => !wlSet.has(normName(x.name)));
+    }
+    function refreshCheckView() {
+      if (!lastResult) return;
+      render(lastResult);
+    }
+    async function compare() {
+      $('compareBtn').disabled = true; $('status').textContent = '正在读取并核对表格…';
+      try {
+        const [p, s] = await Promise.all([readGuests(policeFile, 'police'), readGuests(softFile, 'soft')]);
+        lastResult = compareRows(p, s); render(lastResult);
+        $('output').hidden = false;
+        applyCardStack();
+        $('status').textContent = `核对完成：公安 ${p.length} 条，西软 ${s.length} 条`;
+      } catch (e) {alert('核对失败：' + e.message); $('status').textContent = '核对失败，请检查文件格式和表头。'}
+      finally {$('compareBtn').disabled = !(policeFile && softFile)}
+    }
+    function showCopyToast(msg) {
+      const el = $('copyToast');
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(window.__copyToastTimer);
+      window.__copyToastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+    }
+    function copyText(txt, tip) {
+      const done = () => showCopyToast(tip || `已复制：${txt}`);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(done).catch(() => fallbackCopy(txt, tip));
+      } else {
+        fallbackCopy(txt, tip);
+      }
+    }
+    function fallbackCopy(txt, tip) {
+      const ta = document.createElement('textarea');
+      ta.value = txt;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      showCopyToast(tip || `已复制：${txt}`);
+    }
+    function renderList(id, items, type) {
+      const el = $(id);
+      if (!items.length) {el.innerHTML = '<div class="empty">✓ 未发现需要处理的记录</div>'; return }
+      el.innerHTML = items.map(x => {
+        if (type === 'move') {
+          return `<div class="person">
+            <span class="room copyable" title="点击复制西软房号 ${esc(x.softRoom)}" onclick="copyText('${escJs(x.softRoom)}','已复制房号：${escJs(x.softRoom)}')">${esc(x.softRoom)}</span>
+            <span class="name"><span class="name-text copyable" title="点击复制姓名 ${esc(x.name)}" onclick="copyText('${escJs(x.name)}','已复制姓名：${escJs(x.name)}')">${esc(x.name)}</span></span>
+            <span class="move">
+              <span class="move-chip copyable" title="点击复制公安原房号 ${esc(x.policeRoom)}" onclick="copyText('${escJs(x.policeRoom)}','已复制公安房号：${escJs(x.policeRoom)}')">公安 ${esc(x.policeRoom)}</span>
+              <span>→</span>
+              <span class="move-chip is-soft copyable" title="点击复制西软新房号 ${esc(x.softRoom)}" onclick="copyText('${escJs(x.softRoom)}','已复制西软房号：${escJs(x.softRoom)}')">西软 ${esc(x.softRoom)}</span>
+            </span>
+          </div>`;
+        }
+        if (type === 'add') {
+          return `<div class="person">
+            <span class="room copyable" title="点击复制房号 ${esc(x.room)}" onclick="copyText('${escJs(x.room)}','已复制房号：${escJs(x.room)}')">${esc(x.room)}</span>
+            <span class="name"><span class="name-text copyable" title="点击复制姓名 ${esc(x.name)}" onclick="copyText('${escJs(x.name)}','已复制姓名：${escJs(x.name)}')">${esc(x.name)}</span></span>
+            <button class="wl-btn" onclick="addToWhitelist('${escJs(x.name)}','${escJs(x.room)}')">+ 加入白名单</button>
+          </div>`;
+        }
+        return `<div class="person">
+          <span class="room copyable" title="点击复制房号 ${esc(x.room)}" onclick="copyText('${escJs(x.room)}','已复制房号：${escJs(x.room)}')">${esc(x.room)}</span>
+          <span class="name"><span class="name-text copyable" title="点击复制姓名 ${esc(x.name)}" onclick="copyText('${escJs(x.name)}','已复制姓名：${escJs(x.name)}')">${esc(x.name)}</span></span>
+        </div>`;
+      }).join('');
+    }
+    function esc(v) {return String(v).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]))}
+    function escJs(v) {return String(v).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r|\n/g, '')}
+    function render(r) {
+      const addList = getFilteredAddList(r);
+      $('countMove').textContent = r.moves.length; $('countCheckout').textContent = r.pOnly.length; $('countAdd').textContent = addList.length;
+      $('moveTag').textContent = r.moves.length + ' 人'; $('checkoutTag').textContent = r.pOnly.length + ' 人'; $('addTag').textContent = addList.length + ' 人';
+      renderList('moveRows', r.moves, 'move'); renderList('checkoutRows', r.pOnly, 'normal'); renderList('addRows', addList, 'add');
+      applyCardStack();
+    }
+    function textFor(type) {
+      if (!lastResult) return '';
+      if (type === 'move') return '① 换房核对名单\n' + (lastResult.moves.length ? lastResult.moves.map(x => `公安房号 ${x.policeRoom} → 西软房号 ${x.softRoom}：${x.name}`).join('\n') : '无');
+      if (type === 'checkout') return '② 公安系统退房名单\n' + (lastResult.pOnly.length ? lastResult.pOnly.map(x => `${x.room}：${x.name}`).join('\n') : '无');
+      const addList = getFilteredAddList(lastResult);
+      return '③ 公安系统待补录名单\n' + (addList.length ? addList.map(x => `${x.room}：${x.name}`).join('\n') : '无');
+    }
+    function copyList(type) {
+      const txt = textFor(type);
+      copyText(txt, '名单已复制到剪贴板');
+    }
+    function downloadAll() {
+      const txt = [textFor('move'), '', textFor('checkout'), '', textFor('add')].join('\n');
+      const blob = new Blob(['\ufeff' + txt], {type: 'text/plain;charset=utf-8'}), url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = '公安与西软入住信息核对结果.txt'; a.click(); URL.revokeObjectURL(url);
+    }
+
+    renderWhitelist();
+    applyCardStack();
+  </script>
+</body>
+
+</html>
