@@ -673,17 +673,60 @@
             opacity: 1
         }
 
-        .shift-A { background: #e5efff !important; color: #2456c5 !important }
-        .shift-B { background: #fff0d9 !important; color: #a65a00 !important }
-        .shift-C { background: #e9e4ff !important; color: #6243b5 !important }
-        .shift-DO { background: #e9edf2 !important; color: #687386 !important }
-        .shift-D { background: #e2f5ed !important; color: #16734f !important }
-        .shift-H { background: #ffebef !important; color: #b33f61 !important }
-        .shift-M { background: #fff4c9 !important; color: #876300 !important }
-        .shift-N { background: #fce6e6 !important; color: #b43d3d !important }
-        .shift-L { background: #ffe8d8 !important; color: #a94f16 !important }
-        .shift-F { background: #e3f3f8 !important; color: #28728a !important }
-        .shift-X { background: #343b48 !important; color: #fff !important }
+        .shift-A {
+            background: #e5efff !important;
+            color: #2456c5 !important
+        }
+
+        .shift-B {
+            background: #fff0d9 !important;
+            color: #a65a00 !important
+        }
+
+        .shift-C {
+            background: #e9e4ff !important;
+            color: #6243b5 !important
+        }
+
+        .shift-DO {
+            background: #e9edf2 !important;
+            color: #687386 !important
+        }
+
+        .shift-D {
+            background: #e2f5ed !important;
+            color: #16734f !important
+        }
+
+        .shift-H {
+            background: #ffebef !important;
+            color: #b33f61 !important
+        }
+
+        .shift-M {
+            background: #fff4c9 !important;
+            color: #876300 !important
+        }
+
+        .shift-N {
+            background: #fce6e6 !important;
+            color: #b43d3d !important
+        }
+
+        .shift-L {
+            background: #ffe8d8 !important;
+            color: #a94f16 !important
+        }
+
+        .shift-F {
+            background: #e3f3f8 !important;
+            color: #28728a !important
+        }
+
+        .shift-X {
+            background: #343b48 !important;
+            color: #fff !important
+        }
 
         .remove {
             border: 0;
@@ -1730,17 +1773,15 @@
     <div id="appShell" style="display:none">
         <header>
             <div class="head">
-                <div class="head-main">
-                    <div>
-                        <h1>青年路希尔顿欢朋酒店排班系统</h1>
-                        <div class="sub">FRONT OFFICE · MONTHLY DUTY ROSTER · CLOUD REALTIME SYNC</div>
-                    </div>
-                    <nav class="top-nav" aria-label="系统功能导航">
-                        <a class="nav-link is-active" href="./index.html">月度排班</a>
-                        <a class="nav-link" href="./psb-check.html">公安西软核对</a>
-                        <a class="nav-link" href="./revenue-report.html">营业收入汇总</a>
-                    </nav>
+                <div>
+                    <h1>青年路希尔顿欢朋酒店排班系统</h1>
+                    <div class="sub">FRONT OFFICE · MONTHLY DUTY ROSTER · CLOUD REALTIME SYNC</div>
                 </div>
+                <nav class="top-nav" aria-label="系统功能导航">
+                    <a class="nav-link is-active" href="./index.html">月度排班</a>
+                    <a class="nav-link" href="./psb-check.html">公安西软核对</a>
+                    <a class="nav-link" href="./revenue-report.html">营业收入汇总</a>
+                </nav>
                 <div class="head-right">
                     <div class="status" id="status">● 云端同步中</div>
                     <button type="button" class="logout-btn" id="logoutBtn">退出登录</button>
@@ -1808,7 +1849,8 @@
                 <section class="panel" id="panel-roster" data-card-id="panel-roster">
                     <div class="panel-head">
                         <div class="panel-head-left">
-                            <span class="panel-drag-badge" data-drag-card="panel-roster" title="长按拖动调整卡片顺序">⠿ 长按拖卡</span>
+                            <span class="panel-drag-badge" data-drag-card="panel-roster" title="长按拖动调整卡片顺序">⠿
+                                长按拖卡</span>
                             <h2>月度员工排班表</h2>
                         </div>
                         <small>点击单元格选择班次 · 周末日期单独标识</small>
@@ -1834,7 +1876,8 @@
                 <section class="panel" id="panel-summary" data-card-id="panel-summary">
                     <div class="panel-head">
                         <div class="panel-head-left">
-                            <span class="panel-drag-badge" data-drag-card="panel-summary" title="长按拖动调整卡片顺序">⠿ 长按拖卡</span>
+                            <span class="panel-drag-badge" data-drag-card="panel-summary" title="长按拖动调整卡片顺序">⠿
+                                长按拖卡</span>
                             <h2>每日班次人员汇总</h2>
                         </div>
                         <small>自动统计 A / B / C / H 班人数及姓名</small>
@@ -1862,7 +1905,8 @@
                 <section class="panel" id="panel-manager" data-card-id="panel-manager">
                     <div class="panel-head">
                         <div class="panel-head-left">
-                            <span class="panel-drag-badge" data-drag-card="panel-manager" title="长按拖动调整卡片顺序">⠿ 长按拖卡</span>
+                            <span class="panel-drag-badge" data-drag-card="panel-manager" title="长按拖动调整卡片顺序">⠿
+                                长按拖卡</span>
                             <h2>值班经理名单设置</h2>
                         </div>
                         <small>上传 CSV / TXT 名单后保存，作为每日值班经理下拉选项</small>
