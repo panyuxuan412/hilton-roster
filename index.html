@@ -2600,26 +2600,46 @@
             $('clockDate').textContent = `${now.getFullYear()}年${pad(now.getMonth() + 1)}月${pad(now.getDate())}日 ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
             $('clockWeek').textContent = week[now.getDay()];
             const todayData = getRosterForDate(now), mins = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
-            const active = [], endTimes = [];
-            function collect(date, code, endHour, endMinute) {
+            const active = [];
+            function collectActive(date, code) {
                 const d = getRosterForDate(date), day = date.getDate();
                 d.employees.filter(e => e.shifts && e.shifts[day] === code).forEach(e => {if (e.name && !active.includes(e.name)) active.push(e.name)});
-                let end = new Date(date); end.setHours(endHour, endMinute, 0, 0); if (end <= now) end.setDate(end.getDate() + 1);
-                endTimes.push(end);
             }
-            if (mins >= 450 && mins < 930) collect(now, 'A', 15, 30);
-            if (mins >= 930 && mins < 1410) collect(now, 'B', 23, 30);
-            if (mins >= 1410) collect(now, 'C', 7, 30);
-            if (mins < 450) {let prev = new Date(now); prev.setDate(prev.getDate() - 1); collect(prev, 'C', 7, 30)}
-            if (mins >= 540 && mins < 1080) collect(now, 'D', 18, 0);
-            if (mins >= 660 && mins < 1200) collect(now, 'H', 20, 0);
+            if (mins >= 450 && mins < 930) collectActive(now, 'A');
+            if (mins >= 930 && mins < 1410) collectActive(now, 'B');
+            if (mins >= 1410) collectActive(now, 'C');
+            if (mins < 450) {let prev = new Date(now); prev.setDate(prev.getDate() - 1); collectActive(prev, 'C');}
+            if (mins >= 540 && mins < 1080) collectActive(now, 'D');
+            if (mins >= 660 && mins < 1200) collectActive(now, 'H');
             $('onDuty').textContent = active.length ? active.join(' / ') : '暂无当班人员';
-            let nextEnd = endTimes.filter(t => t > now).sort((a, b) => a - b)[0];
+
+            // 仅根据 A(07:30-15:30)、B(15:30-23:30)、C(23:30-07:30) 三个主要交班时间点定位下班倒计时
+            const handoverTimes = [
+                [7, 30, 'C班 → A班交接'],
+                [15, 30, 'A班 → B班交接'],
+                [23, 30, 'B班 → C班交接']
+            ];
+            let nextEnd = null, handoverLabel = '';
+            for (let offset = 0; offset <= 1 && !nextEnd; offset++) {
+                for (const [hh, mm, label] of handoverTimes) {
+                    const candidate = new Date(now);
+                    candidate.setDate(candidate.getDate() + offset);
+                    candidate.setHours(hh, mm, 0, 0);
+                    if (candidate > now) {
+                        nextEnd = candidate;
+                        handoverLabel = label;
+                        break;
+                    }
+                }
+            }
             if (nextEnd) {
                 let secs = Math.max(0, Math.floor((nextEnd - now) / 1000));
                 $('offCountdown').textContent = `${pad(Math.floor(secs / 3600))}:${pad(Math.floor(secs % 3600 / 60))}:${pad(secs % 60)}`;
-                $('offAt').textContent = `预计下一交接时间 ${pad(nextEnd.getHours())}:${pad(nextEnd.getMinutes())}`;
-            } else {$('offCountdown').textContent = '--:--:--'; $('offAt').textContent = active.length ? '未设置下班时间' : '当前无排班人员'}
+                $('offAt').textContent = `下一交接 ${pad(nextEnd.getHours())}:${pad(nextEnd.getMinutes())}（${handoverLabel}）`;
+            } else {
+                $('offCountdown').textContent = '--:--:--';
+                $('offAt').textContent = '等待交接时间';
+            }
             const events = [['A', 7, 30, '早班'], ['D', 9, 0, '行政班'], ['H', 11, 0, 'H班'], ['B', 15, 30, '中班'], ['C', 23, 30, '晚班']];
             let upcoming = null;
             for (let offset = 0; offset <= 1 && !upcoming; offset++) {
