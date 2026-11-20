@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>营业收入汇总文本生成器</title>
+    <style>
+        :root {
+            --ink: #1a1a2e;
+            --paper: #f0f0f5;
+            --purple: #6c5ce7;
+            --teal: #00cec9;
+            --pink: #fd79a8;
+            --yellow: #ffeaa7;
+            --muted: #77778d;
+            --line: #e6e5ef;
+            --ease: cubic-bezier(.16, 1, .3, 1)
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: radial-gradient(circle at 12% 8%, #e6e1ff 0, transparent 27%), radial-gradient(circle at 92% 18%, #d9f7f4 0, transparent 24%), var(--paper);
+            color: var(--ink);
+            font-family: Inter, "Microsoft YaHei", Arial, sans-serif;
+            padding: 24px 18px 54px
+        }
+
+        .wrap {
+            max-width: 1000px;
+            margin: 0 auto
+        }
+
+        .top-nav-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+            padding: 10px 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .82);
+            border: 1px solid rgba(255, 255, 255, .92);
+            box-shadow: 0 10px 28px rgba(37, 32, 68, .08);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+        }
+
+        .top-nav-brand {
+            font-size: 12px;
+            font-weight: 800;
+            color: #29264e;
+            letter-spacing: .3px;
+        }
+
+        .top-nav {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px;
+            border-radius: 999px;
+            background: #f0eff8;
+            border: 1px solid #e1dff2;
+        }
+
+        .nav-link {
+            display: inline-flex;
+            align-items: center;
+            padding: 7px 14px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+            color: #514b70;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: background .2s var(--ease), color .2s var(--ease), transform .2s var(--ease), box-shadow .2s var(--ease);
+        }
+
+        .nav-link:hover {
+            color: var(--purple);
+            background: rgba(255, 255, 255, .78);
+            transform: translateY(-1px);
+        }
+
+        .nav-link.is-active {
+            color: #fff;
+            background: linear-gradient(110deg, #6c5ce7, #5545c9);
+            box-shadow: 0 4px 12px rgba(108, 92, 231, .28);
+        }
+
+        .head {
+            position: relative;
+            isolation: isolate;
+            overflow: hidden;
+            min-height: 235px;
+            padding: 38px 42px;
+            border-radius: 28px;
+            background: linear-gradient(125deg, #1a1a2e 0%, #29264e 65%, #40377d 100%);
+            color: #fff;
+            box-shadow: 0 24px 60px #25204430
+        }
+
+        .head:before,
+        .head:after {
+            content: "";
+            position: absolute;
+            border-radius: 50%;
+            z-index: -1;
+            filter: blur(1px)
+        }
+
+        .head:before {
+            width: 270px;
+            height: 270px;
+            right: 110px;
+            top: -170px;
+            background: #6c5ce755
+        }
+
+        .head:after {
+            width: 210px;
+            height: 210px;
+            right: -70px;
+            bottom: -130px;
+            background: #00cec944
+        }
+
+        .head-copy {
+            position: relative;
+            z-index: 2;
+            max-width: 650px
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            border: 1px solid #ffffff30;
+            border-radius: 99px;
+            background: #ffffff12;
+            color: #c9c5ff;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1.7px;
+            text-transform: uppercase
+        }
+
+        .eyebrow:before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--teal);
+            box-shadow: 0 0 12px var(--teal)
+        }
+
+        .head h1 {
+            font-size: clamp(23px, 3.5vw, 32px);
+            line-height: 1.35;
+            letter-spacing: -.7px;
+            margin: 17px 0 10px;
+            font-weight: 800
+        }
+
+        .head p {
+            font-size: 13px;
+            line-height: 1.9;
+            margin: 0;
+            color: #c9c8dc;
+            max-width: 580px
+        }
+
+        .visual-stack {
+            position: absolute;
+            width: 190px;
+            height: 170px;
+            right: 58px;
+            top: 37px;
+            perspective: 700px;
+            transition: transform .5s var(--ease)
+        }
+
+        .visual-stack:hover {
+            transform: translateY(-5px) rotate(-2deg)
+        }
+
+        .stack-card {
+            position: absolute;
+            inset: 8px 15px 8px 15px;
+            border-radius: 18px;
+            border: 1px solid #ffffff45;
+            box-shadow: 0 18px 35px #09091b55;
+            transition: transform .65s var(--ease), opacity .5s var(--ease)
+        }
+
+        .stack-card.back {
+            background: linear-gradient(140deg, #fd79a8, #a75be8);
+            transform: translate(18px, 15px) rotate(10deg) scale(.9);
+            opacity: .72
+        }
+
+        .stack-card.mid {
+            background: linear-gradient(140deg, #00cec9, #3985c9);
+            transform: translate(8px, 7px) rotate(5deg) scale(.95);
+            opacity: .88
+        }
+
+        .stack-card.front {
+            background: linear-gradient(145deg, #fff, #e9e6ff);
+            color: #29264e;
+            padding: 19px 17px;
+            transform: rotate(-3deg)
+        }
+
+        .visual-stack:hover .back {
+            transform: translate(34px, 12px) rotate(15deg) scale(.9)
+        }
+
+        .visual-stack:hover .mid {
+            transform: translate(17px, 2px) rotate(8deg) scale(.95)
+        }
+
+        .visual-stack:hover .front {
+            transform: translate(-5px, -7px) rotate(-6deg)
+        }
+
+        .mini-label {
+            font-size: 9px;
+            letter-spacing: 1.3px;
+            color: #77718f;
+            font-weight: 800
+        }
+
+        .mini-number {
+            font-size: 29px;
+            font-weight: 900;
+            margin: 8px 0 3px;
+            letter-spacing: -1px
+        }
+
+        .mini-caption {
+            font-size: 10px;
+            color: #77718f
+        }
+
+        .mini-bars {
+            display: flex;
+            gap: 5px;
+            margin-top: 13px
+        }
+
+        .mini-bars i {
+            display: block;
+            height: 5px;
+            border-radius: 8px;
+            background: #6c5ce7
+        }
+
+        .mini-bars i:nth-child(1) {
+            width: 36%
+        }
+
+        .mini-bars i:nth-child(2) {
+            width: 22%;
+            background: #00bdb7
+        }
+
+        .mini-bars i:nth-child(3) {
+            width: 15%;
+            background: #fd79a8
+        }
+
+        main {
+            margin-top: 20px;
+            padding: 28px;
+            border: 1px solid #fff;
+            border-radius: 25px;
+            background: #ffffffd9;
+            box-shadow: 0 18px 55px #27204412;
+            backdrop-filter: blur(12px)
+        }
+
+        .section-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 17px
+        }
+
+        .section-heading h2 {
+            font-size: 17px;
+            margin: 0;
+            font-weight: 800;
+            letter-spacing: -.2px
+        }
+
+        .section-heading p {
+            margin: 5px 0 0;
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        .step-dot {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 10px;
+            background: #eeeaff;
+            color: var(--purple);
+            font-size: 12px;
+            font-weight: 900;
+            margin-right: 9px;
+            vertical-align: middle
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 99px;
+            padding: 5px 10px;
+            background: #eeeaff;
+            color: #5b4bc4;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .2px
+        }
+
+        .upload-panel {
+            position: relative;
+            padding: 21px;
+            border: 1px dashed #bdb5f4;
+            border-radius: 18px;
+            background: linear-gradient(135deg, #f8f7ff, #f4fffe);
+            transition: transform .35s var(--ease), box-shadow .35s var(--ease), border-color .35s
+        }
+
+        .upload-panel:hover {
+            transform: translateY(-3px);
+            border-color: var(--purple);
+            box-shadow: 0 13px 28px #6c5ce71a
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 800;
+            margin: 0 0 9px;
+            color: #302d4a
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #deddea;
+            border-radius: 11px;
+            font-size: 13px;
+            background: #fff;
+            color: var(--ink);
+            transition: border-color .25s, box-shadow .25s
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: 0;
+            border-color: var(--purple);
+            box-shadow: 0 0 0 4px #6c5ce71a
+        }
+
+        input[type=file] {
+            padding: 10px;
+            background: #fff;
+            cursor: pointer
+        }
+
+        .hint {
+            font-size: 11px;
+            color: #89879b;
+            margin-top: 7px;
+            line-height: 1.65
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 16px
+        }
+
+        .setting-card {
+            padding: 20px;
+            border-radius: 17px;
+            background: #fff;
+            border: 1px solid var(--line);
+            box-shadow: 0 7px 20px #28234c08;
+            transition: transform .4s var(--ease), box-shadow .4s var(--ease)
+        }
+
+        .setting-card:hover {
+            transform: translateY(-5px) rotate(-.35deg);
+            box-shadow: 0 17px 30px #28234c13
+        }
+
+        .setting-card:nth-child(2):hover {
+            transform: translateY(-5px) rotate(.35deg)
+        }
+
+        .setting-card input {
+            margin-top: 1px
+        }
+
+        button {
+            border: 0;
+            border-radius: 11px;
+            padding: 12px 17px;
+            font-weight: 800;
+            font-size: 12px;
+            cursor: pointer;
+            transition: transform .25s var(--ease), box-shadow .25s var(--ease), background .25s;
+        }
+
+        button:hover {
+            transform: translateY(-2px)
+        }
+
+        button:active {
+            transform: translateY(0) scale(.98)
+        }
+
+        button:disabled {
+            opacity: .55;
+            cursor: wait;
+            transform: none
+        }
+
+        .primary {
+            width: 100%;
+            margin-top: 19px;
+            padding: 15px 18px;
+            background: linear-gradient(110deg, #6c5ce7, #5545c9);
+            color: #fff;
+            box-shadow: 0 9px 20px #6c5ce744;
+            font-size: 13px;
+            letter-spacing: .3px
+        }
+
+        .primary:hover {
+            background: linear-gradient(110deg, #5e4edb, #4637b4);
+            box-shadow: 0 13px 25px #6c5ce755
+        }
+
+        .secondary {
+            background: #eeeaff;
+            color: #5b4bc4
+        }
+
+        .secondary:hover {
+            background: #e2dcff;
+            box-shadow: 0 7px 15px #6c5ce71c
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 12px
+        }
+
+        .status {
+            display: none;
+            padding: 13px 15px;
+            border-radius: 12px;
+            margin-top: 16px;
+            font-size: 12px;
+            line-height: 1.75
+        }
+
+        .ok {
+            display: block;
+            background: #eafffa;
+            color: #087d76;
+            border: 1px solid #b9eee7
+        }
+
+        .err {
+            display: block;
+            background: #fff0f4;
+            color: #a52b55;
+            border: 1px solid #ffd0df
+        }
+
+        .result {
+            display: none;
+            margin-top: 25px;
+            padding: 22px;
+            border-radius: 19px;
+            background: linear-gradient(145deg, #f7f6ff, #f1fffd);
+            border: 1px solid #e6e2fb;
+            box-shadow: 0 12px 28px #2520440d
+        }
+
+        .result h2 {
+            font-size: 16px;
+            margin: 0 0 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 450px;
+            padding: 17px;
+            border: 1px solid #deddea;
+            border-radius: 13px;
+            resize: vertical;
+            font: 13px/1.9 "Microsoft YaHei", sans-serif;
+            white-space: pre-wrap;
+            color: #27243e;
+            background: #fff
+        }
+
+        .foot {
+            font-size: 11px;
+            color: #858398;
+            line-height: 1.9;
+            margin-top: 22px;
+            padding: 16px 18px;
+            border-radius: 14px;
+            background: #f7f6fb;
+            border: 1px solid #eeedf4
+        }
+
+        .foot b {
+            color: #514b70
+        }
+
+        .foot-title {
+            font-size: 12px;
+            font-weight: 900;
+            color: #514b70;
+            margin-bottom: 5px
+        }
+
+        @media(max-width:700px) {
+            body {
+                padding: 15px 12px 35px
+            }
+
+            .top-nav-bar {
+                padding: 10px 12px;
+                border-radius: 14px;
+            }
+
+            .top-nav {
+                flex-wrap: wrap;
+                border-radius: 12px;
+            }
+
+            .head {
+                padding: 27px 23px;
+                min-height: 220px
+            }
+
+            .head-copy {
+                max-width: 100%
+            }
+
+            .head h1 {
+                font-size: 22px;
+                max-width: 90%
+            }
+
+            .head p {
+                max-width: 90%;
+                font-size: 12px
+            }
+
+            .visual-stack {
+                right: -30px;
+                top: 83px;
+                transform: scale(.72);
+                opacity: .65
+            }
+
+            .visual-stack:hover {
+                transform: scale(.72) translateY(-5px)
+            }
+
+            main {
+                padding: 20px 16px
+            }
+
+            .row {
+                grid-template-columns: 1fr
+            }
+
+            .setting-card {
+                padding: 17px
+            }
+
+            .section-heading {
+                align-items: flex-start
+            }
+        }
+
+        @media(prefers-reduced-motion:reduce) {
+
+            *,
+            *:before,
+            *:after {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <div class="top-nav-bar">
+            <span class="top-nav-brand">武汉青年路希尔顿欢朋酒店 · 前厅工作台</span>
+            <nav class="top-nav" aria-label="系统功能切换">
+                <a class="nav-link" href="./index.html">月度排班</a>
+                <a class="nav-link" href="./psb-check.html">公安系统核对</a>
+                <a class="nav-link is-active" href="./revenue-report.html">营业收入汇总</a>
+            </nav>
+        </div>
+
+        <header class="head">
+            <div class="head-copy">
+                <span class="eyebrow">REVENUE · REPORT BUILDER</span>
+                <h1>武汉青年路希尔顿欢朋酒店<br>营业收入汇总生成器</h1>
+                <p>上传营业数据日报表，设置夜审日期与月度经营指标，一键生成结构清晰、可直接复制的营业收入汇总文本。</p>
+            </div>
+            <div class="visual-stack" aria-hidden="true">
+                <div class="stack-card back"></div>
+                <div class="stack-card mid"></div>
+                <div class="stack-card front">
+                    <div class="mini-label">MONTHLY REVENUE</div>
+                    <div class="mini-number">Frozen</div>
+                    <div class="mini-caption">经营数据 · 汇总面板</div>
+                    <div class="mini-bars"><i></i><i></i><i></i></div>
+                </div>
+            </div>
+        </header>
+        <main>
+            <div class="section-heading">
+                <div>
+                    <h2><span class="step-dot">01</span>导入营业数据</h2>
+                    <p>选择原始日报表，系统将自动读取对应工作表</p>
+                </div><span class="tag">XLS / XLSX</span>
+            </div>
+            <div class="upload-panel">
+                <label for="file">上传营业数据日报表</label>
+                <input id="file" type="file" accept=".xls,.xlsx">
+                <div class="hint">请上传工作表的原始「营业数据日报表（区间）」。</div>
+            </div>
+            <div class="section-heading" style="margin-top:25px">
+                <div>
+                    <h2><span class="step-dot">02</span>设置生成参数</h2>
+                    <p>确认夜审日期，并维护本月营业总指标</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="setting-card"><label for="date">当前日期</label><input id="date" type="date">
+                    <div class="hint">用于定位夜审当天的数据行。</div>
+                </div>
+                <div class="setting-card"><label for="target">当月总指标（元）</label><input id="target" type="number" min="0"
+                        step="0.01" value="1964676">
+                    <div class="hint">每月修改一次并保存，下次打开此 HTML 会自动填入保存值。</div><button type="button" class="secondary"
+                        id="saveTarget" style="margin-top:11px">保存当月总指标</button>
+                </div>
+            </div>
+            <button class="primary" id="generate">✦ 生成可复制文本</button>
+            <div id="status" class="status"></div>
+            <section class="result" id="result">
+                <h2>生成结果 <span class="tag">可直接编辑 · 复制</span></h2>
+                <textarea id="output" spellcheck="false"></textarea>
+                <div class="actions"><button class="secondary" id="copy">复制全部文本</button><button class="secondary"
+                        id="select">全选文本</button></div>
+            </section>
+            <div class="foot">
+                <div class="foot-title">数据定位说明</div>
+                1. 当日数据：在 Page0 的 B 列匹配输入日期所在行。<br>
+                2. 当月数据：独立搜索 Page0 中内容为「总计：」的单元格，读取其所在行。<br>
+                3. 当月总指标默认填写；修改后点击「保存当月总指标」，下次在同一浏览器打开此文件会自动恢复。<br>
+                4. 生成的是可复制纯文本。
+            </div>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        const $ = id => document.getElementById(id);
+        const TARGET_STORAGE_KEY = 'business_revenue_monthly_target_v1';
+        // 首次打开默认 1964676；若之前点击保存，则优先恢复用户保存的数值。
+        try {
+            const savedTarget = localStorage.getItem(TARGET_STORAGE_KEY);
+            $('target').value = (savedTarget !== null && savedTarget.trim() !== '') ? savedTarget : '1964676';
+        } catch (e) { $('target').value = '1964676'; }
+        $('saveTarget').addEventListener('click', () => {
+            const value = $('target').value.trim();
+            if (value === '' || !Number.isFinite(Number(value)) || Number(value) < 0) {
+                setStatus('请输入有效的当月总指标后再保存。', 'err'); return;
+            }
+            try {
+                localStorage.setItem(TARGET_STORAGE_KEY, String(Number(value)));
+                setStatus('当月总指标已保存。下次使用同一浏览器打开此 HTML 时，会自动填入 ' + numberText(Number(value)) + '。', 'ok');
+            } catch (e) {
+                setStatus('浏览器未允许保存本地数据。请使用 Chrome 或 Edge，并允许本地网站数据存储。', 'err');
+            }
+        });
+        function dateKey(v) {
+            // 用户的日报表日期单元格以文本形式保存，例如：2026-11-17。
+            // 只做首尾空格清理，按 YYYY-MM-DD 内容精确匹配。
+            if (v === null || v === undefined) return '';
+            return String(v).trim();
+        }
+        function clean(v) { return v === null || v === undefined || v === '' ? '' : v; }
+        function numberText(v) {
+            if (v === null || v === undefined || v === '') return '';
+            if (typeof v === 'number') return v.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+            return String(v).trim();
+        }
+        function percentText(v) {
+            if (v === null || v === undefined || v === '') return '';
+            if (typeof v === 'number') return (v * 100).toFixed(2).replace(/\.00$/, '') + '%';
+            const s = String(v).trim(); return s.endsWith('%') ? s : s + '%';
+        }
+        function displayDate(s) { const [y, m, d] = s.split('-'); return `${y}年${Number(m)}月${Number(d)}日`; }
+        function setStatus(msg, type) { const e = $('status'); e.className = 'status ' + type; e.textContent = msg; }
+        $('generate').addEventListener('click', async () => {
+            $('status').className = 'status'; $('result').style.display = 'none';
+            const file = $('file').files[0], date = $('date').value, target = $('target').value.trim();
+            if (!file) return setStatus('请先上传营业数据日报表文件。', 'err');
+            if (!date) return setStatus('请选择当前日期。', 'err');
+            if (target === '' || !Number.isFinite(Number(target)) || Number(target) < 0) return setStatus('请输入有效的当月总指标。', 'err');
+            if (typeof XLSX === 'undefined') return setStatus('Excel 解析组件未能加载，请检查网络后刷新页面。', 'err');
+            const btn = $('generate'); btn.disabled = true; btn.textContent = '正在生成…';
+            try {
+                const wb = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+                const sheetName = wb.SheetNames.find(n => n.toLowerCase() === 'page0') || wb.SheetNames[0];
+                if (!sheetName) throw Error('文件中没有可读取的工作表。');
+                const ws = wb.Sheets[sheetName];
+                // 直接按 Excel 单元格地址读取，避免 sheet_to_json 因空白 A 列/数据区域起点而改变数组列索引。
+                const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
+                const readCell = (row1, colLetter) => {
+                    const cell = ws[`${colLetter}${row1}`];
+                    if (!cell) return null;
+                    if (cell.v !== undefined && cell.v !== null) return cell.v;
+                    return cell.w !== undefined ? cell.w : null;
+                };
+                const normalizeDate = v => {
+                    if (v === null || v === undefined) return '';
+                    if (v instanceof Date && !isNaN(v)) return `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, '0')}-${String(v.getDate()).padStart(2, '0')}`;
+                    return String(v).trim();
+                };
+                // 只查找 B 列内容与日期输入框完全相同的单元格，例如 B22 = 2026-11-16。
+                let dayRow = -1;
+                for (let r = range.s.r + 1; r <= range.e.r + 1; r++) {
+                    if (normalizeDate(readCell(r, 'B')) === date) { dayRow = r; break; }
+                }
+                if (dayRow < 0) {
+                    const samples = [];
+                    for (let r = range.s.r + 1; r <= Math.min(range.e.r + 1, range.s.r + 12); r++) {
+                        const v = readCell(r, 'B'); if (v !== null && v !== '') samples.push(String(v));
+                    }
+                    throw Error(`没有在 Page0 的 B 列找到「${date}」。程序已直接读取 Excel 的 B 列单元格。B列前几项实际内容：${samples.join('、') || '（空）'}。请确认上传文件是否为你正在查看的那一份。`);
+                }
+                // 本月累计行独立定位：在 Page0 所有单元格中查找内容为“总计：”的单元格。
+                // 不再使用“日期行的下一行”，因此中间存在后续日期也不会误读。
+                let monthRow = -1, totalAddress = '';
+                for (let r = range.s.r; r <= range.e.r; r++) {
+                    for (let c = range.s.c; c <= range.e.c; c++) {
+                        const addr = XLSX.utils.encode_cell({ r, c });
+                        const cell = ws[addr];
+                        if (!cell) continue;
+                        const value = cell.v !== undefined ? cell.v : cell.w;
+                        if (typeof value === 'string' && value.trim().replace(/\s/g, '').replace(/:/g, '：') === '总计：') {
+                            monthRow = r + 1; totalAddress = addr; break;
+                        }
+                    }
+                    if (monthRow !== -1) break;
+                }
+                if (monthRow < 0) throw Error('已找到当天日期，但没有在 Page0 中找到内容为「总计：」的单元格，无法读取本月累计数据。');
+                const day = { D: readCell(dayRow, 'D'), E: readCell(dayRow, 'E'), I: readCell(dayRow, 'I'), K: readCell(dayRow, 'K'), L: readCell(dayRow, 'L'), M: readCell(dayRow, 'M'), N: readCell(dayRow, 'N'), O: readCell(dayRow, 'O'), P: readCell(dayRow, 'P') };
+                const month = { D: readCell(monthRow, 'D'), E: readCell(monthRow, 'E'), I: readCell(monthRow, 'I'), K: readCell(monthRow, 'K'), L: readCell(monthRow, 'L'), M: readCell(monthRow, 'M'), N: readCell(monthRow, 'N'), O: readCell(monthRow, 'O'), P: readCell(monthRow, 'P') };
+                const lines = [
+                    '武汉青年路希尔顿欢朋酒店营业收入汇总：',
+                    (() => { const [y, m, d] = date.split('-'); return `${y}年${Number(m)}月${Number(d)}日`; })(),
+                    `当日总营收：${numberText(day.P)}`,
+                    `出租房数：${numberText(day.D)}`,
+                    `出租率：${percentText(day.E)}`,
+                    `平均房价：${numberText(day.I)}`,
+                    `客房收入：${numberText(day.K)}`,
+                    `餐饮收入：${numberText(day.L)}`,
+                    `会议收入：${numberText(day.M)}`,
+                    `其他收入：${numberText(day.O)}`,
+                    '当月收入汇总',
+                    `当月总指标：${numberText(Number(target))}`,
+                    `当月总营收：${numberText(month.P)}`,
+                    `当月出租率：${percentText(month.E)}`,
+                    `当月出租房数：${numberText(month.D)}`,
+                    `当月平均房价：${numberText(month.I)}`,
+                    `客房总收入：${numberText(month.K)}`,
+                    `餐饮总收入：${numberText(month.L)}`,
+                    `会议总收入：${numberText(month.M)}`,
+                    `商场收入：${numberText(month.N)}`,
+                    `其他总收入：${numberText(month.O)}`
+                ];
+                $('output').value = lines.join('\n'); $('result').style.display = 'block';
+                setStatus(`生成成功！已读取 Page0 的 B${dayRow} 单元格（${date}）作为当日数据；另在 ${totalAddress} 找到「总计：」，读取第 ${monthRow} 行作为本月累计数据。下方文本可直接复制。`, 'ok');
+            } catch (e) { setStatus(e.message || '生成失败，请检查文件格式。', 'err'); }
+            finally { btn.disabled = false; btn.textContent = '✦ 生成可复制文本'; }
+        });
+        $('copy').addEventListener('click', async () => {
+            const t = $('output'); try { await navigator.clipboard.writeText(t.value); setStatus('已复制全部汇总文本，可以粘贴到微信、邮件或其他文档中。', 'ok'); }
+            catch (e) { t.focus(); t.select(); try { document.execCommand('copy'); setStatus('已复制全部汇总文本。', 'ok'); } catch (_) { setStatus('浏览器未授权自动复制，请点击「全选文本」后手动复制。', 'err'); } }
+        });
+        $('select').addEventListener('click', () => { $('output').focus(); $('output').select(); });
+    </script>
+</body>
+
+</html>

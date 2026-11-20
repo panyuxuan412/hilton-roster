@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>公安 & 西软入住信息智能核对工具</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b1322;
+      --ink: #f4f7ff;
+      --muted: #8fa3c4;
+      --glass-bg: rgba(255, 255, 255, 0.065);
+      --glass-bg-strong: rgba(16, 25, 45, 0.78);
+      --glass-border: rgba(255, 255, 255, 0.15);
+      --glass-highlight: rgba(255, 255, 255, 0.28);
+      --accent: #6c5ce7;
+      --cyan: #00cec9;
+      --champagne: #e4b863;
+      --orange: #f39c38;
+      --red: #ff6b6b;
+      --shadow-glass: 0 20px 50px rgba(3, 8, 20, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, sans-serif;
+      overflow-x: hidden
+    }
+
+    /* Liquid Glass 光晕背景层 */
+    .ambient-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 0%, #152442 0%, var(--bg) 72%)
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(90px);
+      opacity: .48;
+      transform: translate3d(0, 0, 0)
+    }
+
+    .orb-1 {
+      width: 540px;
+      height: 540px;
+      top: -140px;
+      left: -100px;
+      background: radial-gradient(circle, rgba(108, 92, 231, .65), transparent 70%)
+    }
+
+    .orb-2 {
+      width: 580px;
+      height: 580px;
+      top: 18%;
+      right: -150px;
+      background: radial-gradient(circle, rgba(0, 206, 201, .42), transparent 70%)
+    }
+
+    .orb-3 {
+      width: 480px;
+      height: 480px;
+      bottom: -140px;
+      left: 24%;
+      background: radial-gradient(circle, rgba(228, 184, 99, .32), transparent 70%)
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 24px auto;
+      padding: 0 22px 64px
+    }
+
+    /* 液态玻璃通用面板 */
+    .glass {
+      background: var(--glass-bg);
+      backdrop-filter: blur(40px) saturate(180%);
+      -webkit-backdrop-filter: blur(40px) saturate(180%);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--shadow-glass);
+    }
+
+    /* 顶部切换导航 */
+    .top-nav-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      padding: 10px 16px;
+      border-radius: 18px;
+    }
+
+    .top-nav-brand {
+      font-size: 12px;
+      font-weight: 700;
+      color: #d6e1f5;
+      letter-spacing: .3px;
+    }
+
+    .top-nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--muted);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease;
+    }
+
+    .nav-link:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-1px);
+    }
+
+    .nav-link.is-active {
+      color: #fff;
+      background: linear-gradient(135deg, #7868f0, #4b7bec);
+      box-shadow: 0 4px 14px rgba(108, 92, 231, 0.42);
+    }
+
+    .hero {
+      border-radius: 28px;
+      padding: 30px 32px;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.03))
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--glass-highlight), transparent)
+    }
+
+    .eyebrow {
+      font-size: 12px;
+      letter-spacing: 2.4px;
+      color: var(--champagne);
+      font-weight: 600
+    }
+
+    .hero h1 {
+      margin: 10px 0 8px;
+      font-size: 28px;
+      letter-spacing: -0.02em;
+      font-weight: 700
+    }
+
+    .hero p {
+      margin: 0;
+      color: #c7d5ec;
+      font-size: 14px;
+      line-height: 1.8
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 20px
+    }
+
+    .step {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 13px 15px;
+      font-size: 13px;
+      color: #d6e1f5;
+      backdrop-filter: blur(20px)
+    }
+
+    .step b {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 4px;
+      color: #fff
+    }
+
+    .uploads {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 20px 0
+    }
+
+    .panel {
+      border-radius: 22px;
+      padding: 22px
+    }
+
+    .panel h2 {
+      font-size: 16px;
+      margin: 0 0 6px;
+      color: #fff
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.7
+    }
+
+    .drop {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      min-height: 188px;
+      margin-top: 14px;
+      padding: 22px 18px;
+      border: 1.5px dashed rgba(255, 255, 255, 0.22);
+      border-radius: 18px;
+      text-align: center;
+      line-height: 1.6;
+      background: rgba(255, 255, 255, 0.03);
+      cursor: pointer;
+      transition: background .25s, border-color .25s, transform .25s, box-shadow .25s;
+      overflow: hidden;
+    }
+
+    .drop:hover,
+    .drop.drag {
+      border-color: var(--cyan);
+      background: rgba(0, 206, 201, 0.08);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(0, 206, 201, 0.12)
+    }
+
+    .drop:focus-within {
+      outline: 3px solid rgba(108, 92, 231, 0.35);
+      outline-offset: 3px
+    }
+
+    .drop .symbol {
+      font-size: 28px;
+      line-height: 1.2
+    }
+
+    .drop strong {
+      display: block;
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 4px 0 0;
+      color: #fff
+    }
+
+    .drop .hint {
+      display: block;
+      margin: 0
+    }
+
+    .drop .filename {
+      display: block;
+      max-width: 100%;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--cyan);
+      overflow-wrap: anywhere;
+      margin-top: 2px;
+      font-weight: 600
+    }
+
+    input[type=file] {
+      display: none
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 18px 0 22px
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform .2s, filter .2s, background .2s, box-shadow .2s;
+      color: var(--ink)
+    }
+
+    .primary {
+      background: linear-gradient(135deg, #7868f0, #4b7bec);
+      color: #fff;
+      box-shadow: 0 8px 22px rgba(108, 92, 231, 0.38)
+    }
+
+    .primary:hover {
+      filter: brightness(1.06);
+      transform: translateY(-1px)
+    }
+
+    .secondary {
+      background: rgba(255, 255, 255, 0.09);
+      color: #e2ebfa;
+      border: 1px solid rgba(255, 255, 255, 0.14)
+    }
+
+    .secondary:hover {
+      background: rgba(255, 255, 255, 0.16)
+    }
+
+    .secondary.active {
+      background: rgba(108, 92, 231, 0.28);
+      border-color: rgba(138, 124, 255, 0.65);
+      color: #fff
+    }
+
+    .danger {
+      background: rgba(255, 107, 107, 0.14);
+      color: #ff9b9b;
+      border: 1px solid rgba(255, 107, 107, 0.32)
+    }
+
+    .danger:hover {
+      background: rgba(255, 107, 107, 0.24)
+    }
+
+    .wl-btn {
+      background: rgba(0, 206, 201, 0.14);
+      color: #5ef2ee;
+      border: 1px solid rgba(0, 206, 201, 0.32);
+      padding: 6px 11px;
+      font-size: 12px;
+      border-radius: 9px;
+      white-space: nowrap
+    }
+
+    .wl-btn:hover {
+      background: rgba(0, 206, 201, 0.25)
+    }
+
+    button:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+      transform: none;
+      filter: none
+    }
+
+    .status {
+      font-size: 13px;
+      color: var(--muted)
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 16px 0 20px
+    }
+
+    .metric {
+      border-radius: 18px;
+      padding: 18px;
+      cursor: pointer;
+      transition: transform .25s, border-color .25s
+    }
+
+    .metric:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.3)
+    }
+
+    .metric .n {
+      font-size: 30px;
+      font-weight: 750;
+      line-height: 1.15;
+      font-variant-numeric: tabular-nums
+    }
+
+    .metric .t {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px
+    }
+
+    .metric.blue .n {
+      color: #8fa8ff
+    }
+
+    .metric.orange .n {
+      color: var(--orange)
+    }
+
+    .metric.green .n {
+      color: var(--cyan)
+    }
+
+    /* Card Stack 切换控制条 */
+    .stack-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 18px;
+      padding: 12px 16px;
+      border-radius: 16px
+    }
+
+    .stack-tabs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap
+    }
+
+    .stack-tab {
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--muted);
+      border: 1px solid transparent
+    }
+
+    .stack-tab:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1)
+    }
+
+    .stack-tab.active {
+      background: rgba(108, 92, 231, 0.26);
+      color: #fff;
+      border-color: rgba(140, 126, 255, 0.55)
+    }
+
+    .stack-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .mini {
+      padding: 7px 11px;
+      font-size: 12px;
+      border-radius: 9px
+    }
+
+    /* Card Stack 层叠卡组容器 */
+    .results {
+      position: relative
+    }
+
+    .results.stack-mode {
+      padding-bottom: 36px
+    }
+
+    .result-panel {
+      border-radius: 22px;
+      padding: 0;
+      overflow: hidden;
+      background: var(--glass-bg-strong);
+      backdrop-filter: blur(44px) saturate(180%);
+      -webkit-backdrop-filter: blur(44px) saturate(180%);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--shadow-glass);
+      transition: transform .4s cubic-bezier(0.22, 1, 0.36, 1), opacity .4s ease, box-shadow .35s ease
+    }
+
+    .results.stack-mode .result-panel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      transform-origin: top center
+    }
+
+    .results.stack-mode .result-panel.stack-pos-0 {
+      position: relative;
+      z-index: 3;
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1)
+    }
+
+    .results.stack-mode .result-panel.stack-pos-1 {
+      z-index: 2;
+      opacity: .72;
+      transform: translate3d(0, 14px, 0) scale(0.975);
+      pointer-events: none
+    }
+
+    .results.stack-mode .result-panel.stack-pos-2 {
+      z-index: 1;
+      opacity: .45;
+      transform: translate3d(0, 28px, 0) scale(0.95);
+      pointer-events: none
+    }
+
+    .results.stack-mode .result-panel.stack-pos-hidden {
+      opacity: 0;
+      transform: translate3d(0, 36px, 0) scale(0.93);
+      pointer-events: none
+    }
+
+    .results.list-mode {
+      display: grid;
+      gap: 16px
+    }
+
+    .results.list-mode .result-panel {
+      position: relative;
+      opacity: 1;
+      transform: none
+    }
+
+    .result-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 17px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.03)
+    }
+
+    .result-head h3 {
+      margin: 0;
+      font-size: 16px;
+      color: #fff
+    }
+
+    .result-head p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px
+    }
+
+    .tag {
+      font-size: 11px;
+      padding: 5px 10px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.09);
+      color: #d7e2f5;
+      white-space: nowrap;
+      border: 1px solid rgba(255, 255, 255, 0.1)
+    }
+
+    .rows {
+      padding: 8px 20px 18px;
+      max-height: 420px;
+      overflow-y: auto
+    }
+
+    .results.list-mode .rows {
+      max-height: none
+    }
+
+    .empty {
+      padding: 26px 8px;
+      color: var(--cyan);
+      font-size: 13px;
+      text-align: center
+    }
+
+    .person {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 2px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      gap: 14px;
+      font-size: 14px
+    }
+
+    .person:last-child {
+      border-bottom: 0
+    }
+
+    .room {
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      min-width: 52px;
+      color: var(--champagne)
+    }
+
+    .name {
+      flex: 1;
+      color: #f2f6ff
+    }
+
+    .move {
+      color: var(--muted);
+      font-size: 12px
+    }
+
+    .move b {
+      color: #9ab2ff;
+      font-weight: 650
+    }
+
+    .rowtools {
+      display: flex;
+      gap: 8px;
+      align-items: center
+    }
+
+    /* 白名单面板 */
+    .wl-panel {
+      margin-top: 20px
+    }
+
+    .wl-body {
+      padding: 16px 20px 20px
+    }
+
+    .wl-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 2px
+    }
+
+    .wl-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 12px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      font-size: 13px;
+      color: #f0f5ff
+    }
+
+    .wl-chip b {
+      color: var(--cyan)
+    }
+
+    .wl-chip .meta {
+      color: var(--muted);
+      font-size: 11px
+    }
+
+    .wl-remove {
+      background: none;
+      border: 0;
+      padding: 0 2px;
+      color: #9fb0cb;
+      font-size: 15px;
+      line-height: 1;
+      font-weight: 700;
+      cursor: pointer
+    }
+
+    .wl-remove:hover {
+      color: var(--red)
+    }
+
+    .wl-empty {
+      color: var(--muted);
+      font-size: 13px;
+      padding: 8px 0
+    }
+
+    .note {
+      margin-top: 16px;
+      padding: 15px 18px;
+      background: rgba(228, 184, 99, 0.08);
+      border: 1px solid rgba(228, 184, 99, 0.25);
+      border-radius: 16px;
+      color: #ebd39d;
+      font-size: 12px;
+      line-height: 1.8;
+      backdrop-filter: blur(24px)
+    }
+
+    .footer {
+      text-align: center;
+      color: #7284a3;
+      font-size: 11px;
+      margin-top: 26px
+    }
+
+    @media(max-width:700px) {
+      .wrap {
+        margin: 14px auto;
+        padding: 0 12px 40px
+      }
+
+      .top-nav-bar {
+        padding: 10px 12px;
+        border-radius: 14px;
+      }
+
+      .top-nav {
+        flex-wrap: wrap;
+        border-radius: 12px;
+      }
+
+      .drop {
+        min-height: 165px;
+        padding: 18px 14px
+      }
+
+      .hero {
+        padding: 22px;
+        border-radius: 22px
+      }
+
+      .hero h1 {
+        font-size: 21px
+      }
+
+      .steps {
+        grid-template-columns: 1fr
+      }
+
+      .uploads {
+        grid-template-columns: 1fr
+      }
+
+      .summary {
+        gap: 8px
+      }
+
+      .metric {
+        padding: 12px;
+        border-radius: 15px
+      }
+
+      .metric .n {
+        font-size: 23px
+      }
+
+      .result-head {
+        padding: 15px;
+        flex-wrap: wrap
+      }
+
+      .rows {
+        padding: 6px 15px 14px
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="ambient-bg" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <div class="wrap">
+    <div class="top-nav-bar glass">
+      <span class="top-nav-brand">武汉青年路希尔顿欢朋酒店 · 前厅工作台</span>
+      <nav class="top-nav" aria-label="系统功能切换">
+        <a class="nav-link" href="./index.html">月度排班</a>
+        <a class="nav-link is-active" href="./psb-check.html">公安西软核对</a>
+        <a class="nav-link" href="./revenue-report.html">营业收入汇总</a>
+      </nav>
+    </div>
+
+    <header class="hero glass">
+      <div class="eyebrow">HOTEL FRONT OFFICE · LIQUID GLASS &amp; CARD STACK</div>
+      <h1>公安 &amp; 西软入住信息智能核对</h1>
+      <p>上传两份系统导出的入住表格，自动找出房号不一致、公安系统待退房，以及公安系统待补录的住客。</p>
+      <div class="steps">
+        <div class="step"><b>01 · 换房核对</b>同一客人姓名，两个系统房号不一致</div>
+        <div class="step"><b>02 · 退房核对</b>公安有记录，西软已无该客人</div>
+        <div class="step"><b>03 · 证件补录</b>西软有记录，公安尚未登记</div>
+      </div>
+    </header>
+
+    <section class="uploads">
+      <div class="panel glass">
+        <h2>① 公安系统入住信息</h2>
+        <div class="hint">文件：在住旅客报表 · 默认读取 A 列房号、C 列姓名</div>
+        <label class="drop" id="policeDrop" for="policeFile">
+          <div class="symbol">📄</div><strong>点击选择或拖入公安系统文件</strong>
+          <span class="hint">支持 Excel .xls / .xlsx</span>
+          <div class="filename" id="policeName">尚未上传文件</div>
+        </label>
+        <input id="policeFile" type="file" accept=".xls,.xlsx,.xlsm">
+      </div>
+      <div class="panel glass">
+        <h2>② 西软系统当前在店住客</h2>
+        <div class="hint">文件：当前在店住客列表 · 默认读取 A 列房号、E 列姓名</div>
+        <label class="drop" id="softDrop" for="softFile">
+          <div class="symbol">📊</div><strong>点击选择或拖入西软系统文件</strong>
+          <span class="hint">支持 Excel .xls / .xlsx</span>
+          <div class="filename" id="softName">尚未上传文件</div>
+        </label>
+        <input id="softFile" type="file" accept=".xls,.xlsx,.xlsm">
+      </div>
+    </section>
+
+    <div class="actions">
+      <button class="primary" id="compareBtn" disabled>开始智能核对</button>
+      <button class="secondary" id="resetBtn">重新上传</button>
+      <span class="status" id="status">请先上传两份 Excel 文件</span>
+    </div>
+
+    <div id="output" hidden>
+      <div class="summary">
+        <div class="metric glass blue" onclick="focusCard('move')">
+          <div class="n" id="countMove">0</div>
+          <div class="t">需要换房核对（点击置顶）</div>
+        </div>
+        <div class="metric glass orange" onclick="focusCard('checkout')">
+          <div class="n" id="countCheckout">0</div>
+          <div class="t">需要公安退房（点击置顶）</div>
+        </div>
+        <div class="metric glass green" onclick="focusCard('add')">
+          <div class="n" id="countAdd">0</div>
+          <div class="t">需要补传证件（点击置顶）</div>
+        </div>
+      </div>
+
+      <div class="stack-toolbar glass">
+        <div class="stack-tabs">
+          <button class="stack-tab active" data-card="move" onclick="focusCard('move')">① 换房核对</button>
+          <button class="stack-tab" data-card="checkout" onclick="focusCard('checkout')">② 公安退房</button>
+          <button class="stack-tab" data-card="add" onclick="focusCard('add')">③ 公安待补录</button>
+        </div>
+        <div class="stack-controls">
+          <button class="secondary mini" onclick="cycleCard(-1)">← 上一张</button>
+          <button class="secondary mini" onclick="cycleCard(1)">下一张 →</button>
+          <button class="secondary mini" id="viewModeBtn" onclick="toggleViewMode()">展开全部列表</button>
+        </div>
+      </div>
+
+      <div class="results stack-mode" id="resultsContainer">
+        <section class="result-panel" id="card-move" data-key="move">
+          <div class="result-head">
+            <div>
+              <h3>① 换房核对名单</h3>
+              <p>同名客人房号不同；按西软房号排序</p>
+            </div>
+            <div class="rowtools"><span class="tag" id="moveTag">0 人</span><button class="secondary mini"
+                onclick="copyList('move')">复制名单</button></div>
+          </div>
+          <div class="rows" id="moveRows"></div>
+        </section>
+        <section class="result-panel" id="card-checkout" data-key="checkout">
+          <div class="result-head">
+            <div>
+              <h3>② 公安系统退房名单</h3>
+              <p>公安系统有记录、西软系统已无记录；按房号排序</p>
+            </div>
+            <div class="rowtools"><span class="tag" id="checkoutTag">0 人</span><button class="secondary mini"
+                onclick="copyList('checkout')">复制名单</button></div>
+          </div>
+          <div class="rows" id="checkoutRows"></div>
+        </section>
+        <section class="result-panel" id="card-add" data-key="add">
+          <div class="result-head">
+            <div>
+              <h3>③ 公安系统待补录名单</h3>
+              <p>西软系统有记录、公安系统尚无记录（已排除白名单）；按房号排序</p>
+            </div>
+            <div class="rowtools"><span class="tag" id="addTag">0 人</span><button class="secondary mini"
+                onclick="copyList('add')">复制名单</button></div>
+          </div>
+          <div class="rows" id="addRows"></div>
+        </section>
+      </div>
+
+      <div class="actions"><button class="primary" onclick="downloadAll()">下载核对结果（TXT）</button><span
+          class="status">可分别复制每份名单，或一次性下载全部结果。</span></div>
+      <div class="note">
+        核对规则说明：以姓名作为跨系统匹配依据；同名且房号相同视为一致。同名但房号不同列入换房名单。第二、三份名单分别列出仅存在于公安系统、仅存在于西软系统的记录。加入“待补录白名单”的住客将默认已上传，不再出现在第三份待补录名单中，数据长久保存在当前浏览器中，直至点击“一键清除白名单”。若同一姓名在任一系统出现多次，程序会优先匹配房号相同的记录，再对剩余同名记录进行配对。请在执行操作前复核同名住客，避免重名造成误操作。
+      </div>
+    </div>
+
+    <!-- 独立白名单查看与管理区域 -->
+    <section class="result-panel wl-panel" id="whitelistPanel">
+      <div class="result-head">
+        <div>
+          <h3>🛡️ 公安待补录白名单</h3>
+          <p>默认已上传的住客（如外籍客人）会长久保存在本机浏览器中，不再提示待补录</p>
+        </div>
+        <div class="rowtools">
+          <span class="tag" id="whitelistTag">0 人</span>
+          <button class="danger mini" id="clearWhitelistBtn" onclick="clearWhitelist()">一键清除白名单</button>
+        </div>
+      </div>
+      <div class="wl-body">
+        <div class="wl-list" id="whitelistRows"></div>
+      </div>
+    </section>
+
+    <div class="footer">本工具在浏览器本地读取文件与白名单数据，表格内容不会上传到服务器。Excel 解析组件需联网加载。
+
+    </div>
+    <div class="footer">作者：Frozen
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const WHITELIST_KEY = 'hotel_psb_missing_whitelist_v1';
+    const CARD_ORDER = ['move', 'checkout', 'add'];
+    let policeFile = null, softFile = null, lastResult = null;
+    let activeCardKey = 'add';
+    let isListMode = false;
+
+    function setupInput(id, nameId, dropId, which) {
+      const input = $(id), drop = $(dropId);
+      input.addEventListener('change', () => {if (input.files[0]) setFile(which, input.files[0], nameId)});
+      ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => {e.preventDefault(); drop.classList.add('drag')}));
+      ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => {e.preventDefault(); drop.classList.remove('drag')}));
+      drop.addEventListener('drop', e => {const f = e.dataTransfer.files[0]; if (f) setFile(which, f, nameId)});
+    }
+    function setFile(which, file, nameId) {
+      if (!/\.(xls|xlsx|xlsm)$/i.test(file.name)) {alert('请选择 .xls 或 .xlsx 格式的 Excel 文件'); return }
+      if (which === 'police') policeFile = file; else softFile = file;
+      $(nameId).textContent = '✓ ' + file.name;
+      $('compareBtn').disabled = !(policeFile && softFile);
+      $('status').textContent = policeFile && softFile ? '两份文件已就绪，可以开始核对' : '请继续上传另一份文件';
+    }
+    setupInput('policeFile', 'policeName', 'policeDrop', 'police');
+    setupInput('softFile', 'softName', 'softDrop', 'soft');
+    $('compareBtn').addEventListener('click', compare);
+    $('resetBtn').addEventListener('click', () => {
+      policeFile = softFile = null; lastResult = null;
+      $('policeFile').value = ''; $('softFile').value = '';
+      $('policeName').textContent = '尚未上传文件'; $('softName').textContent = '尚未上传文件';
+      $('compareBtn').disabled = true; $('output').hidden = true; $('status').textContent = '请先上传两份 Excel 文件';
+    });
+
+    /* Card Stack 层叠交互 */
+    function applyCardStack() {
+      const container = $('resultsContainer');
+      if (!container) return;
+      if (isListMode) {
+        container.classList.remove('stack-mode');
+        container.classList.add('list-mode');
+        CARD_ORDER.forEach(key => {
+          const el = $('card-' + key);
+          if (el) el.className = 'result-panel';
+        });
+        return;
+      }
+      container.classList.remove('list-mode');
+      container.classList.add('stack-mode');
+      const startIdx = CARD_ORDER.indexOf(activeCardKey);
+      const ordered = [
+        ...CARD_ORDER.slice(startIdx),
+        ...CARD_ORDER.slice(0, startIdx)
+      ];
+      ordered.forEach((key, idx) => {
+        const el = $('card-' + key);
+        if (!el) return;
+        el.className = 'result-panel ' + (idx < 3 ? 'stack-pos-' + idx : 'stack-pos-hidden');
+      });
+      document.querySelectorAll('.stack-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.card === activeCardKey);
+      });
+    }
+    function focusCard(key) {
+      if (!CARD_ORDER.includes(key)) return;
+      activeCardKey = key;
+      if (isListMode) {
+        const target = $('card-' + key);
+        if (target) target.scrollIntoView({behavior: 'smooth', block: 'start'});
+      }
+      applyCardStack();
+    }
+    function cycleCard(delta) {
+      const idx = CARD_ORDER.indexOf(activeCardKey);
+      const nextIdx = (idx + delta + CARD_ORDER.length) % CARD_ORDER.length;
+      activeCardKey = CARD_ORDER[nextIdx];
+      applyCardStack();
+    }
+    function toggleViewMode() {
+      isListMode = !isListMode;
+      $('viewModeBtn').textContent = isListMode ? '切换层叠卡组' : '展开全部列表';
+      $('viewModeBtn').classList.toggle('active', isListMode);
+      applyCardStack();
+    }
+
+    function clean(v) {return String(v ?? '').replace(/\u00a0/g, ' ').replace(/\u3000/g, ' ').trim().replace(/\s+/g, '')}
+    function room(v) {return clean(v).replace(/\.0$/, '')}
+    function normName(v) {return clean(v).replace(/[·•]/g, '·')}
+    function isRoomHeader(v) {const s = clean(v); return /^(房号|入住房号|房间号|房间号码)$/.test(s)}
+    function isNameHeader(v) {return /^(姓名|客人姓名|住客姓名)$/.test(clean(v))}
+    function locateHeader(rows, system) {
+      for (let r = 0; r < Math.min(rows.length, 15); r++) {
+        const vals = rows[r] || []; let ri = -1, ni = -1;
+        vals.forEach((v, c) => {if (ri < 0 && isRoomHeader(v)) ri = c; if (ni < 0 && isNameHeader(v)) ni = c});
+        if (ri >= 0 && ni >= 0) return {row: r, roomCol: ri, nameCol: ni};
+      }
+      return system === 'police' ? {row: 1, roomCol: 0, nameCol: 2} : {row: 0, roomCol: 0, nameCol: 4};
+    }
+    async function readGuests(file, system) {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, {type: 'array', cellDates: false});
+      if (!wb.SheetNames.length) throw new Error(file.name + ' 中没有工作表');
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header: 1, raw: false, defval: ''});
+      const h = locateHeader(rows, system), out = [];
+      for (let i = h.row + 1; i < rows.length; i++) {
+        const row = rows[i] || [], rm = room(row[h.roomCol]), nm = normName(row[h.nameCol]);
+        if (!rm || !nm) continue;
+        if (isRoomHeader(rm) || isNameHeader(nm)) continue;
+        out.push({room: rm, name: nm, sourceRow: i + 1});
+      }
+      if (!out.length) throw new Error((system === 'police' ? '公安' : '西软') + '文件未读取到有效的房号和姓名，请检查表格列位置或表头。');
+      return out;
+    }
+    function roomSort(a, b) {
+      const x = String(a), y = String(b), nx = Number(x), ny = Number(y);
+      if (Number.isFinite(nx) && Number.isFinite(ny) && x !== '' && y !== '') return nx - ny || x.localeCompare(y, 'zh');
+      return x.localeCompare(y, 'zh', {numeric: true, sensitivity: 'base'});
+    }
+
+    /* 白名单读写与管理 */
+    function getWhitelist() {
+      try {
+        const raw = localStorage.getItem(WHITELIST_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        console.error('读取白名单失败', e);
+        return [];
+      }
+    }
+    function saveWhitelist(list) {
+      localStorage.setItem(WHITELIST_KEY, JSON.stringify(list));
+      renderWhitelist();
+    }
+    function getWhitelistNameSet() {
+      return new Set(getWhitelist().map(x => normName(x.name)));
+    }
+    function addToWhitelist(guestName, guestRoom = '') {
+      const nm = normName(guestName);
+      const rm = room(guestRoom);
+      if (!nm) return;
+      const list = getWhitelist();
+      if (!list.some(x => normName(x.name) === nm)) {
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        list.push({name: nm, room: rm, addedAt: dateStr});
+        saveWhitelist(list);
+      }
+      refreshCheckView();
+    }
+    function removeFromWhitelist(guestName) {
+      const nm = normName(guestName);
+      const next = getWhitelist().filter(x => normName(x.name) !== nm);
+      saveWhitelist(next);
+      refreshCheckView();
+    }
+    function clearWhitelist() {
+      const list = getWhitelist();
+      if (!list.length) {alert('当前白名单已经是空的'); return }
+      if (!confirm(`确定要一键清除全部 ${list.length} 名白名单人员吗？清除后他们将重新出现在公安系统待补录核对中。`)) return;
+      localStorage.removeItem(WHITELIST_KEY);
+      renderWhitelist();
+      refreshCheckView();
+    }
+    function renderWhitelist() {
+      const list = getWhitelist();
+      $('whitelistTag').textContent = list.length + ' 人';
+      $('clearWhitelistBtn').disabled = list.length === 0;
+      const el = $('whitelistRows');
+      if (!list.length) {
+        el.innerHTML = '<div class="wl-empty">暂无白名单人员。在“③ 公安系统待补录名单”中点击“加入白名单”即可长久保存。</div>';
+        return;
+      }
+      el.innerHTML = list.map(item => `
+    <span class="wl-chip">
+      <span>${item.room ? `<b>${esc(item.room)}</b> · ` : ''}<span>${esc(item.name)}</span></span>
+      ${item.addedAt ? `<span class="meta">(${esc(item.addedAt)})</span>` : ''}
+      <button class="wl-remove" title="移出白名单" onclick="removeFromWhitelist('${escJs(item.name)}')">×</button>
+    </span>
+  `).join('');
+    }
+
+    function compareRows(police, soft) {
+      const pMap = new Map(), sMap = new Map();
+      for (const x of police) {if (!pMap.has(x.name)) pMap.set(x.name, []); pMap.get(x.name).push({...x, used: false})}
+      for (const x of soft) {if (!sMap.has(x.name)) sMap.set(x.name, []); sMap.get(x.name).push({...x, used: false})}
+      const moves = [], pOnly = [], sOnlyAll = [];
+      const names = new Set([...pMap.keys(), ...sMap.keys()]);
+      for (const name of names) {
+        const ps = pMap.get(name) || [], ss = sMap.get(name) || [];
+        // 先按姓名+房号匹配，避免同名多人的记录错配
+        for (const p of ps) {const exact = ss.find(s => !s.used && s.room === p.room); if (exact) {p.used = true; exact.used = true} }
+        const pr = ps.filter(x => !x.used), sr = ss.filter(x => !x.used);
+        const paired = Math.min(pr.length, sr.length);
+        for (let i = 0; i < paired; i++) {
+          moves.push({name, policeRoom: pr[i].room, softRoom: sr[i].room});
+          pr[i].used = true; sr[i].used = true;
+        }
+        for (const p of ps) if (!p.used) pOnly.push(p);
+        for (const s of ss) if (!s.used) sOnlyAll.push(s);
+      }
+      moves.sort((a, b) => roomSort(a.softRoom, b.softRoom) || a.name.localeCompare(b.name, 'zh'));
+      pOnly.sort((a, b) => roomSort(a.room, b.room) || a.name.localeCompare(b.name, 'zh'));
+      sOnlyAll.sort((a, b) => roomSort(a.room, b.room) || a.name.localeCompare(b.name, 'zh'));
+      return {moves, pOnly, sOnlyAll, policeCount: police.length, softCount: soft.length};
+    }
+    function getFilteredAddList(result) {
+      if (!result) return [];
+      const wlSet = getWhitelistNameSet();
+      return result.sOnlyAll.filter(x => !wlSet.has(normName(x.name)));
+    }
+    function refreshCheckView() {
+      if (!lastResult) return;
+      render(lastResult);
+    }
+    async function compare() {
+      $('compareBtn').disabled = true; $('status').textContent = '正在读取并核对表格…';
+      try {
+        const [p, s] = await Promise.all([readGuests(policeFile, 'police'), readGuests(softFile, 'soft')]);
+        lastResult = compareRows(p, s); render(lastResult);
+        $('output').hidden = false;
+        applyCardStack();
+        $('status').textContent = `核对完成：公安 ${p.length} 条，西软 ${s.length} 条`;
+      } catch (e) {alert('核对失败：' + e.message); $('status').textContent = '核对失败，请检查文件格式和表头。'}
+      finally {$('compareBtn').disabled = !(policeFile && softFile)}
+    }
+    function renderList(id, items, type) {
+      const el = $(id);
+      if (!items.length) {el.innerHTML = '<div class="empty">✓ 未发现需要处理的记录</div>'; return }
+      el.innerHTML = items.map(x => {
+        if (type === 'move') return `<div class="person"><span class="room">${esc(x.softRoom)}</span><span class="name">${esc(x.name)}</span><span class="move">公安 ${esc(x.policeRoom)} <b>→ 西软 ${esc(x.softRoom)}</b></span></div>`;
+        if (type === 'add') return `<div class="person"><span class="room">${esc(x.room)}</span><span class="name">${esc(x.name)}</span><button class="wl-btn" onclick="addToWhitelist('${escJs(x.name)}','${escJs(x.room)}')">+ 加入白名单</button></div>`;
+        return `<div class="person"><span class="room">${esc(x.room)}</span><span class="name">${esc(x.name)}</span></div>`;
+      }).join('');
+    }
+    function esc(v) {return String(v).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]))}
+    function escJs(v) {return String(v).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r|\n/g, '')}
+    function render(r) {
+      const addList = getFilteredAddList(r);
+      $('countMove').textContent = r.moves.length; $('countCheckout').textContent = r.pOnly.length; $('countAdd').textContent = addList.length;
+      $('moveTag').textContent = r.moves.length + ' 人'; $('checkoutTag').textContent = r.pOnly.length + ' 人'; $('addTag').textContent = addList.length + ' 人';
+      renderList('moveRows', r.moves, 'move'); renderList('checkoutRows', r.pOnly, 'normal'); renderList('addRows', addList, 'add');
+      applyCardStack();
+    }
+    function textFor(type) {
+      if (!lastResult) return '';
+      if (type === 'move') return '① 换房核对名单\n' + (lastResult.moves.length ? lastResult.moves.map(x => `公安房号 ${x.policeRoom} → 西软房号 ${x.softRoom}：${x.name}`).join('\n') : '无');
+      if (type === 'checkout') return '② 公安系统退房名单\n' + (lastResult.pOnly.length ? lastResult.pOnly.map(x => `${x.room}：${x.name}`).join('\n') : '无');
+      const addList = getFilteredAddList(lastResult);
+      return '③ 公安系统待补录名单\n' + (addList.length ? addList.map(x => `${x.room}：${x.name}`).join('\n') : '无');
+    }
+    function copyList(type) {
+      const txt = textFor(type);
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => alert('名单已复制')).catch(() => fallbackCopy(txt));
+      else fallbackCopy(txt);
+    }
+    function fallbackCopy(txt) {const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); alert('名单已复制')}
+    function downloadAll() {
+      const txt = [textFor('move'), '', textFor('checkout'), '', textFor('add')].join('\n');
+      const blob = new Blob(['\ufeff' + txt], {type: 'text/plain;charset=utf-8'}), url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = '公安与西软入住信息核对结果.txt'; a.click(); URL.revokeObjectURL(url);
+    }
+
+    renderWhitelist();
+    applyCardStack();
+  </script>
+</body>
+
+</html>
